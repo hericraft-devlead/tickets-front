@@ -4,33 +4,34 @@
   </div>
 </template>
 
-<script setup>
-import { onMounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { authService } from './services/authService'
-
-const route = useRoute()
-const router = useRouter()
-
-const checkAuthentication = async () => {
-  const isAuthenticated = await authService.checkAuth()
-  
-  if (!isAuthenticated && route.path !== '/login') {
-    router.push('/login')
+<script>
+export default {
+  name: 'App',
+  async mounted() {
+    // Verificar autenticación al cargar la app
+    await this.checkAuthentication();
+  },
+  methods: {
+    async checkAuthentication() {
+      // Usar el servicio de autenticación inyectado
+      const isAuthenticated = await this.$auth.checkAuth();
+      
+      // Solo redirigir a login si no está autenticado y no está ya en la página de login
+      if (!isAuthenticated && this.$route.path !== '/login') {
+        this.$router.push('/login');
+      }
+      
+      // Opcional: Si está autenticado y en login, redirigir al dashboard
+      if (isAuthenticated && this.$route.path === '/login') {
+        this.$router.push('/dashboard');
+      }
+    }
+  },
+  watch: {
+    // Verificar autenticación cuando cambia la ruta
+    '$route': 'checkAuthentication'
   }
-  
-  if (isAuthenticated && route.path === '/login') {
-    router.push('/dashboard')
-  }
-}
-
-onMounted(() => {
-  checkAuthentication()
-})
-
-watch(() => route.path, () => {
-  checkAuthentication()
-})
+};
 </script>
 
 <style>
