@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Login from '@/views/auth/Login.vue'
+import LoginLocal from '@/views/auth/LoginLocal.vue'
 import Dashboard from '@/views/Dashboard.vue'
-import CourseList from '@/views/CourseList.vue'
 import AuthService from '@/services/authService'
 
 const routes = [
@@ -12,16 +12,16 @@ const routes = [
     meta: { requiresGuest: true }
   },
   {
+    path: '/login/local',
+    name: 'LoginLocal',
+    component: LoginLocal,
+    meta: { requiresGuest: true }
+  },
+  {
     path: '/dashboard',
     name: 'Dashboard',
     component: Dashboard,
     meta: { requiresAuth: true }
-  },
-  {
-    path: '/courses',
-    name: 'Courses',
-    component: CourseList,
-    meta: { requiresAuth: false }
   },
   {
     path: '/',

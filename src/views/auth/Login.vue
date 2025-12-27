@@ -51,6 +51,12 @@
         <p>• Conectado a: <strong>Moodle HeriCraft</strong></p>
         <p>• Tu usuario será verificado en la plataforma educativa</p>
       </div>
+      <div class="admin-link">
+        <span>
+          ¿Eres administrador?
+          <a @click.prevent="goToAdminLogin" href="#">Admin</a>
+        </span>
+      </div>
     </div>
   </div>
 </template>
@@ -145,6 +151,10 @@ export default {
       } finally {
         this.loading = false
       }
+    },
+
+     goToAdminLogin() {
+      this.$router.push('/login/local')
     }
   }
 }
@@ -273,4 +283,23 @@ export default {
   font-size: 0.8rem;
   color: #666;
 }
+
+.admin-link {
+  margin-top: 1.5rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.admin-link a {
+  margin-left: 4px;
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.admin-link a:hover {
+  text-decoration: underline;
+}
+
 </style>

@@ -3,7 +3,7 @@ import api from './api';
 class AuthService {
   async login(credentials) {
     try {
-      const response = await api.post('/auth/login', credentials);
+      const response = await api.post('/auth/moodle/login', credentials);
       
       if (response.data.success) {
         localStorage.setItem('user', JSON.stringify(response.data.user));
@@ -41,7 +41,7 @@ class AuthService {
 
   async checkAuth() {
     try {
-      const response = await api.get('/auth/check');
+      const response = await api.get('/auth/moodle/check');
       return response.data.success;
     } catch (error) {
       this.logout();
@@ -54,7 +54,7 @@ class AuthService {
       const user = this.getCurrentUser();
       if (!user) throw new Error('No hay usuario autenticado');
 
-      const response = await api.get('/auth/profile?user_id=' + user.id);
+      const response = await api.get('/auth/moodle/profile');
       return response.data;
     } catch (error) {
       throw new Error(`Error al obtener perfil: ${error.message}`);

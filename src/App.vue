@@ -7,27 +7,36 @@
 <script>
 export default {
   name: 'App',
+
   async mounted() {
     await this.checkAuthentication();
   },
+
   methods: {
     async checkAuthentication() {
-      const isAuthenticated = await this.$auth.checkAuth();
-      
-      if (!isAuthenticated && this.$route.path !== '/login') {
+      const isAuthenticated =
+        localStorage.getItem('token') || sessionStorage.getItem('token');
+
+      const isLoginRoute = this.$route.path.startsWith('/login');
+
+      if (!isAuthenticated && !isLoginRoute) {
         this.$router.push('/login');
       }
-      
-      if (isAuthenticated && this.$route.path === '/login') {
+
+      if (isAuthenticated && isLoginRoute) {
         this.$router.push('/dashboard');
       }
     }
   },
+
   watch: {
-    '$route': 'checkAuthentication'
+    '$route'() {
+      this.checkAuthentication();
+    }
   }
 };
 </script>
+
 
 <style>
 * {
