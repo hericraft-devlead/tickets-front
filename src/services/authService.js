@@ -3,7 +3,7 @@ import api from './api';
 class AuthService {
   async login(credentials) {
     try {
-      const response = await api.post('/auth/simple-login', credentials);
+      const response = await api.post('/auth/login', credentials);
       
       if (response.data.success) {
         localStorage.setItem('user', JSON.stringify(response.data.user));

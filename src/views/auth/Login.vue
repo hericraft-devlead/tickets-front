@@ -56,10 +56,12 @@
 </template>
 
 <script>
-import AuthService from '@/services/authService';
+import AuthService from '@/services/authService'
+import MoodleService from '@/services/moodleService'
 
 export default {
   name: 'Login',
+
   data() {
     return {
       credentials: {
@@ -69,42 +71,85 @@ export default {
       loading: false,
       error: '',
       success: ''
-    };
+    }
   },
+
   methods: {
     async handleLogin() {
       if (!this.credentials.username || !this.credentials.password) {
-        this.error = 'Por favor ingresa usuario y contraseña';
-        return;
+        this.error = 'Por favor ingresa usuario y contraseña'
+        return
       }
 
-      this.loading = true;
-      this.error = '';
-      this.success = '';
+      this.loading = true
+      this.error = ''
+      this.success = ''
 
       try {
-        const result = await AuthService.login(this.credentials);
-        
-        if (result.success) {
-          this.success = `¡Bienvenido ${result.user.firstname}!`;
-          this.$emit('login-success', result.user);
-          
-          setTimeout(() => {
-            this.$router.push('/dashboard');
-          }, 1500);
-        } else {
-          this.error = result.message || 'Error en el login';
+        const result = await AuthService.login(this.credentials)
+
+        if (!result.success) {
+          this.error = result.message || 'Error en el login'
+          return
         }
+
+        const user = result.user
+        const userId = user.id
+
+        const infoResponse = await MoodleService.getUserInfoData(userId)
+
+        if (!infoResponse.success || !infoResponse.data.length) {
+          throw new Error('No se pudo obtener la información del usuario')
+        }
+
+        const tipoUsuario = infoResponse.data.find(
+          item => item.fieldid === 6
+        )?.data
+
+        if (!tipoUsuario) {
+          throw new Error('No se pudo determinar el tipo de usuario')
+        }
+
+        localStorage.setItem(
+          'user',
+          JSON.stringify({
+            ...user,
+            tipoUsuario
+          })
+        )
+
+        this.success = `¡Bienvenido ${user.firstname}!`
+
+        setTimeout(() => {
+          switch (tipoUsuario) {
+            case 'Profesor':
+              this.$router.push('/profesor/dashboard')
+              break
+
+            case 'Alumno':
+              this.$router.push('/alumno/dashboard')
+              break
+
+            case 'Administrador':
+              this.$router.push('/admin/dashboard')
+              break
+
+            default:
+              this.$router.push('/dashboard')
+          }
+        }, 1500)
+
       } catch (error) {
-        this.error = error.message;
-        console.error('Login error:', error);
+        console.error('Login error:', error)
+        this.error = error.message || 'Error al iniciar sesión'
       } finally {
-        this.loading = false;
+        this.loading = false
       }
     }
   }
-};
+}
 </script>
+
 
 <style scoped>
 .login-container {

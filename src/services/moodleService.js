@@ -48,6 +48,16 @@ class MoodleService {
       throw new Error(`Error en función ${functionName}: ${error.message}`)
     }
   }
+
+    async getUserInfoData(userId) {
+    try {
+      const response = await api.get(`/moodle/user/${userId}/info-data`)
+      return response.data
+    } catch (error) {
+      throw new Error(`Error al obtener información adicional del usuario: ${error.message}`)
+    }
+  }
+
 }
 
 export default new MoodleService()

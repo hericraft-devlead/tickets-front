@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Login from '@/components/Login.vue'
-import Dashboard from '@/components/Dashboard.vue'
-import CourseList from '@/components/CourseList.vue'
+import Login from '@/views/auth/Login.vue'
+import Dashboard from '@/views/Dashboard.vue'
+import CourseList from '@/views/CourseList.vue'
 import AuthService from '@/services/authService'
 
 const routes = [
@@ -21,7 +21,7 @@ const routes = [
     path: '/courses',
     name: 'Courses',
     component: CourseList,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: false }
   },
   {
     path: '/',
