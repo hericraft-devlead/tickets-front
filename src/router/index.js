@@ -1,31 +1,73 @@
 import { createRouter, createWebHistory } from 'vue-router'
+
+// Auth
 import Login from '@/views/auth/Login.vue'
 import LoginLocal from '@/views/auth/LoginLocal.vue'
-import Dashboard from '@/views/Dashboard.vue'
-import AuthService from '@/services/authService'
+
+// Moodle
+import AlumnoDashboard from '@/views/admin/Dashboard.vue'
+import ProfesorDashboard from '@/views/admin/Dashboard.vue'
+import MoodleLayout from '@/layouts/MoodleLayout.vue'
+
+// Admin
+import AdminDashboard from '@/views/admin/Dashboard.vue'
+import AdminLayout from '@/layouts/AdminLayout.vue'
 
 const routes = [
+  // LOGIN
   {
     path: '/login',
-    name: 'Login',
     component: Login,
-    meta: { requiresGuest: true }
+    meta: { guestOnly: true }
   },
   {
     path: '/login/local',
-    name: 'LoginLocal',
     component: LoginLocal,
-    meta: { requiresGuest: true }
+    meta: { guestOnly: true }
+  },
+
+  // MOODLE
+  {
+    path: '/alumno',
+    component: MoodleLayout,
+    meta: { requiresMoodle: true, role: 'Estudiante' },
+    children: [
+      {
+        path: 'dashboard',
+        component: AlumnoDashboard
+      }
+    ]
   },
   {
-    path: '/dashboard',
-    name: 'Dashboard',
-    component: Dashboard,
-    meta: { requiresAuth: true }
+    path: '/profesor',
+    component: MoodleLayout,
+    meta: { requiresMoodle: true, role: 'Profesor' },
+    children: [
+      {
+        path: 'dashboard',
+        component: ProfesorDashboard
+      }
+    ]
   },
+
+
+  //  ADMIN
+  {
+    path: '/admin',
+    meta: { requiresAdmin: true },
+    component: AdminLayout,
+    children: [
+      {
+        path: 'dashboard',
+        component: AdminDashboard
+      }
+    ]
+  },
+
+  // DEFAULT
   {
     path: '/',
-    redirect: '/dashboard'
+    redirect: '/login'
   }
 ]
 
@@ -34,16 +76,42 @@ const router = createRouter({
   routes
 })
 
+/* GUARD GLOBAL */
 router.beforeEach((to, from, next) => {
-  const isAuthenticated = AuthService.isAuthenticated()
+  const moodleSession = JSON.parse(localStorage.getItem('moodle_user'))
+  const adminSession = JSON.parse(localStorage.getItem('admin_session'))
 
-  if (to.meta.requiresAuth && !isAuthenticated) {
-    next('/login')
-  } else if (to.meta.requiresGuest && isAuthenticated) {
-    next('/dashboard')
-  } else {
-    next()
+  // RUTAS DE INVITADO
+  if (to.meta.guestOnly && (moodleSession || adminSession)) {
+    if (adminSession) return next('/admin/dashboard')
+
+    const tipo = moodleSession?.user?.tipoUsuario
+    if (tipo === 'Profesor') return next('/profesor/dashboard')
+    if (tipo === 'Estudiante') return next('/alumno/dashboard')
   }
+
+  // RUTAS MOODLE
+  if (to.meta.requiresMoodle) {
+    if (!moodleSession?.user) {
+      localStorage.removeItem('moodle_user')
+      return next('/login')
+    }
+
+    if (to.meta.role && moodleSession.user.tipoUsuario !== to.meta.role) {
+      return next('/login')
+    }
+  }
+
+  // RUTAS ADMIN
+  if (to.meta.requiresAdmin) {
+    if (!adminSession?.token) {
+      return next('/login/local')
+    }
+  }
+
+  next()
 })
+
+
 
 export default router

@@ -6,13 +6,13 @@
 
       <form @submit.prevent="handleLogin">
         <div class="form-group">
-          <label for="email">Usuario / Email:</label>
+          <label for="email">Email:</label>
           <input
             id="email"
             v-model="credentials.email"
             type="text"
             required
-            placeholder="Usuario o email"
+            placeholder="Email"
             :disabled="loading"
           />
         </div>
@@ -39,11 +39,11 @@
       </form>
 
       <div v-if="error" class="error-message">
-        ❌ {{ error }}
+        {{ error }}
       </div>
 
       <div v-if="success" class="success-message">
-        ✅ {{ success }}
+        {{ success }}
       </div>
 
       <div class="back-link">
@@ -57,6 +57,7 @@
 
 <script>
 import AuthLocalService from '@/services/authLocal.service.js'
+import { useAdminAuthStore } from '@/stores/adminAuth'
 
 export default {
   name: 'LoginLocal',
@@ -75,33 +76,24 @@ export default {
 
   methods: {
     async handleLogin() {
-      if (!this.credentials.email || !this.credentials.password) {
-        this.error = 'Ingresa usuario y contraseña'
-        return
-      }
-
       this.loading = true
       this.error = ''
-      this.success = ''
 
       try {
         const response = await AuthLocalService.login(this.credentials)
 
-        const user = response.user
+        const authStore = useAdminAuthStore()
 
-        localStorage.setItem(
-          'user',
-          JSON.stringify({
-            ...user,
-            auth_type: 'local'
-          })
-        )
+        authStore.login({
+          token: response.token,
+          user: response.user
+        })
 
-        this.success = `Bienvenido ${user.name || 'Administrador'}`
+        this.success = `Bienvenido ${response.user.name}`
 
         setTimeout(() => {
           this.$router.push('/admin/dashboard')
-        }, 1000)
+        }, 800)
 
       } catch (err) {
         this.error = err.message || 'Error al iniciar sesión'
@@ -116,6 +108,7 @@ export default {
   }
 }
 </script>
+
 
 <style scoped>
 .login-container {

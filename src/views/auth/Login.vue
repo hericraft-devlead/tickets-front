@@ -117,33 +117,34 @@ export default {
         }
 
         localStorage.setItem(
-          'user',
+          'moodle_user',
           JSON.stringify({
-            ...user,
-            tipoUsuario
+            auth_type: 'moodle',
+            token: result.token,
+            token_type: result.token_type,
+
+            user: {
+              id: user.id,
+              username: user.username,
+              email: user.email,
+              firstname: user.firstname,
+              lastname: user.lastname,
+              fullname: user.fullname,
+              tipoUsuario
+            }
           })
         )
+
 
         this.success = `¡Bienvenido ${user.firstname}!`
 
         setTimeout(() => {
-          switch (tipoUsuario) {
-            case 'Profesor':
-              this.$router.push('/profesor/dashboard')
-              break
-
-            case 'Alumno':
-              this.$router.push('/alumno/dashboard')
-              break
-
-            case 'Administrador':
-              this.$router.push('/admin/dashboard')
-              break
-
-            default:
-              this.$router.push('/dashboard')
+          if (tipoUsuario === 'Profesor') {
+            this.$router.push('/profesor/dashboard')
+          } else if (tipoUsuario === 'Estudiante') {
+            this.$router.push('/alumno/dashboard')
           }
-        }, 1500)
+        }, 1200)
 
       } catch (error) {
         console.error('Login error:', error)
