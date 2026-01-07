@@ -1,65 +1,36 @@
-import api from './api';
+import api from './api'
+import { useMoodleAuthStore } from '@/stores/moodleAuth'
 
 class AuthService {
   async login(credentials) {
-    try {
-      const response = await api.post('/auth/moodle/login', credentials);
-      
-      if (response.data.success) {
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-        localStorage.setItem('token', response.data.token);
-        
-        sessionStorage.setItem('user', JSON.stringify(response.data.user));
-        sessionStorage.setItem('token', response.data.token);
-      }
-      
-      return response.data;
-    } catch (error) {
-      throw new Error(`Error en login: ${error.response?.data?.message || error.message}`);
+    const response = await api.post('/auth/moodle/login', credentials)
+
+    if (response.data.success) {
+      const store = useMoodleAuthStore()
+      store.session = response.data
+      localStorage.setItem(
+        'moodle_user',
+        JSON.stringify(response.data)
+      )
+    await store.loadUserInfo()
     }
-  }
 
-  logout() {
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    sessionStorage.removeItem('user');
-    sessionStorage.removeItem('token');
-  }
-
-  isAuthenticated() {
-    return !!(localStorage.getItem('token') || sessionStorage.getItem('token'));
-  }
-
-  getCurrentUser() {
-    const user = localStorage.getItem('user') || sessionStorage.getItem('user');
-    return user ? JSON.parse(user) : null;
-  }
-
-  getToken() {
-    return localStorage.getItem('token') || sessionStorage.getItem('token');
+    return response.data
   }
 
   async checkAuth() {
-    try {
-      const response = await api.get('/auth/moodle/check');
-      return response.data.success;
-    } catch (error) {
-      this.logout();
-      return false;
-    }
+    const response = await api.get('/auth/moodle/check')
+    return response.data.success
   }
 
   async getProfile() {
-    try {
-      const user = this.getCurrentUser();
-      if (!user) throw new Error('No hay usuario autenticado');
+    const response = await api.get('/auth/moodle/profile')
+    return response.data
+  }
 
-      const response = await api.get('/auth/moodle/profile');
-      return response.data;
-    } catch (error) {
-      throw new Error(`Error al obtener perfil: ${error.message}`);
-    }
+  async logout() {
+    await api.post('/auth/moodle/logout')
   }
 }
 
-export default new AuthService();
+export default new AuthService()

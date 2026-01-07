@@ -99,10 +99,16 @@ export default {
           return
         }
 
-        const user = result.user
-        const userId = user.id
+        const moodleUser = result.moodle_user
 
-        const infoResponse = await MoodleService.getUserInfoData(userId)
+        if (!moodleUser) {
+          throw new Error('Respuesta inválida del servidor')
+        }
+
+    
+        const infoResponse = await MoodleService.getUserInfoData(
+          moodleUser.moodle_user_id
+        )
 
         if (!infoResponse.success || !infoResponse.data.length) {
           throw new Error('No se pudo obtener la información del usuario')
@@ -116,6 +122,7 @@ export default {
           throw new Error('No se pudo determinar el tipo de usuario')
         }
 
+    
         localStorage.setItem(
           'moodle_user',
           JSON.stringify({
@@ -124,25 +131,25 @@ export default {
             token_type: result.token_type,
 
             user: {
-              id: user.id,
-              username: user.username,
-              email: user.email,
-              firstname: user.firstname,
-              lastname: user.lastname,
-              fullname: user.fullname,
+              id: moodleUser.id,              
+              moodle_user_id: moodleUser.moodle_user_id,
+              name: moodleUser.name,
+              email: moodleUser.email,
               tipoUsuario
             }
           })
         )
 
+        this.success = `¡Bienvenido ${moodleUser.name}!`
 
-        this.success = `¡Bienvenido ${user.firstname}!`
-
+      
         setTimeout(() => {
           if (tipoUsuario === 'Profesor') {
-            this.$router.push('/profesor/dashboard')
+            this.$router.push('/moodle/ticket')
           } else if (tipoUsuario === 'Estudiante') {
-            this.$router.push('/alumno/dashboard')
+            this.$router.push('/moodle/ticket')
+          } else {
+            this.$router.push('/login')
           }
         }, 1200)
 
@@ -154,12 +161,13 @@ export default {
       }
     },
 
-     goToAdminLogin() {
+    goToAdminLogin() {
       this.$router.push('/login/local')
     }
   }
 }
 </script>
+
 
 
 <style scoped>

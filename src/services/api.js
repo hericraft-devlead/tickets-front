@@ -1,42 +1,40 @@
 import axios from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
-
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api',
   headers: {
     'Content-Type': 'application/json',
-    'Accept': 'application/json',
+    Accept: 'application/json',
   },
-  timeout: 15000,
 })
 
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    return config
-  },
-  (error) => {
-    return Promise.reject(error)
-  }
-)
+/* ================= REQUEST ================= */
+api.interceptors.request.use(config => {
+  const moodleSession = JSON.parse(localStorage.getItem('moodle_user'))
+  const adminToken =
+    localStorage.getItem('token') || sessionStorage.getItem('token')
 
+  const token = moodleSession?.token || adminToken
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+
+  return config
+})
+
+/* ================= RESPONSE ================= */
 api.interceptors.response.use(
-  (response) => {
-    return response
-  },
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      sessionStorage.removeItem('token')
-      sessionStorage.removeItem('user')
-      window.location.href = '/login'
+  res => res,
+  err => {
+    if (err.response?.status === 401) {
+      // ❗ SOLO limpia Moodle si es Moodle
+      if (err.config?.url?.includes('/tickets')) {
+        localStorage.removeItem('moodle_user')
+      }
     }
-    return Promise.reject(error)
+
+    return Promise.reject(err)
   }
 )
 

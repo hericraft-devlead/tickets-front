@@ -1,27 +1,55 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import api from '@/services/api'
+import MoodleService from '@/services/moodleService'
 
-export const useMoodleAuthStore = defineStore('moodleAuth', () => {
-  const session = ref(
-    JSON.parse(localStorage.getItem('moodle_user'))
-  )
+export const useMoodleAuthStore = defineStore('moodleAuth', {
+  state: () => ({
+    token: null,
+    user: null,
+    loading: false,
+  }),
 
-  const user = computed(() => session.value?.user)
-  const token = computed(() => session.value?.token)
+  actions: {
+    /* ===== LOGIN ===== */
+    async login(credentials) {
+      const { data } = await api.post('/moodle/login', credentials)
 
-  function logout() {
-    localStorage.removeItem('moodle_user')
-    session.value = null
-    window.location.href = '/login'
-  }
+      this.token = data.token
+      this.user = data.user
 
-  return {
-    session,
-    user,
-    token,
-    isAuthenticated: () => !!token.value,
-    isProfesor: () => user.value?.tipoUsuario === 'Profesor',
-    isAlumno: () => user.value?.tipoUsuario === 'Estudiante',
-    logout
-  }
+      localStorage.setItem(
+        'moodle_user',
+        JSON.stringify({ token: this.token, user: this.user })
+      )
+    },
+
+    /* ===== RESTAURAR SESIÓN ===== */
+    restoreSession() {
+      const data = JSON.parse(localStorage.getItem('moodle_user'))
+      if (data?.token && data?.user) {
+        this.token = data.token
+        this.user = data.user
+      }
+    },
+
+    /* ===== INFO EXTRA (tipoUsuario) ===== */
+    async loadUserInfo() {
+      if (!this.user?.id || this.user?.tipoUsuario) return
+
+      const info = await MoodleService.getUserInfoData(this.user.id)
+
+      this.user.tipoUsuario = info.tipoUsuario
+
+      localStorage.setItem(
+        'moodle_user',
+        JSON.stringify({ token: this.token, user: this.user })
+      )
+    },
+
+    logout() {
+      this.token = null
+      this.user = null
+      localStorage.removeItem('moodle_user')
+    },
+  },
 })
