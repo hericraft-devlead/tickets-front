@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import AuthLocalService from '@/services/authLocal.service';
 
 export const useAdminAuthStore = defineStore('adminAuth', () => {
   const session = ref(
@@ -21,10 +22,17 @@ export const useAdminAuthStore = defineStore('adminAuth', () => {
     localStorage.setItem('admin_session', JSON.stringify(payload))
   }
 
-  function logout() {
-    localStorage.removeItem('admin_session')
-    session.value = null
-    window.location.href = '/login/local'
+  async function logout() {
+    try {
+      await AuthLocalService.logout();
+    } catch (error) {
+      console.warn('Error en logout del backend, continuando...', error);
+    } finally {
+      localStorage.removeItem('admin_session');
+      session.value = null;
+      
+      window.location.href = '/login/local';
+    }
   }
 
   return {

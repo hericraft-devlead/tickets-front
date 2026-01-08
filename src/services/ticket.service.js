@@ -34,5 +34,14 @@ export default {
 
   delete(ticketId) {
     return api.delete(`/tickets/${ticketId}`)
+  },
+
+  getStatuses() {
+    return api.get('/ticket-statuses')
+  },
+  
+  getPriorities() {
+    return api.get('/priorities') 
   }
 }
+

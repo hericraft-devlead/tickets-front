@@ -46,7 +46,25 @@
         </select>
       </div>
 
-      <!-- CONTACTO (SIEMPRE) -->
+      <!-- ETIQUETAS (TAGS) -->
+      <div class="field">
+      <label>Etiquetas</label>
+      <div class="chips-container">
+        <div class="chips-list">
+          <span 
+            v-for="tag in tags" 
+            :key="tag.id"
+            :class="['chip', { 'chip-selected': form.tag_ids.includes(tag.id) }]"
+            @click="toggleTag(tag.id)"
+          >
+            {{ tag.name }}
+          </span>
+        </div>
+        <small class="hint">Haz clic en las etiquetas para seleccionarlas</small>
+      </div>
+    </div>
+
+      <!-- CONTACTO -->
       <div class="field">
         <label>Nombre</label>
         <input v-model="form.contact_name" type="text" required />
@@ -72,6 +90,7 @@
 import { ref, onMounted } from 'vue'
 import api from '@/services/api'
 import ticketService from '@/services/ticket.service'
+import tagService from '@/services/tag.service'
 import { useMoodleAuthStore } from '@/stores/moodleAuth'
 
 const moodleAuth = useMoodleAuthStore()
@@ -81,6 +100,7 @@ const form = ref({
   description: '',
   category_id: '',
   priority_id: '',
+  tag_ids: [], 
   contact_name: '',
   contact_email: '',
   moodle_user_id: null,
@@ -88,6 +108,7 @@ const form = ref({
 
 const categories = ref([])
 const priorities = ref([])
+const tags = ref([])
 
 const loading = ref(false)
 const error = ref(null)
@@ -98,6 +119,7 @@ function resetForm() {
     description: '',
     category_id: '',
     priority_id: '',
+    tag_ids: [], 
     contact_name: moodleAuth.user?.name || '',
     contact_email: moodleAuth.user?.email || '',
     moodle_user_id: moodleAuth.user?.id || null,
@@ -106,15 +128,17 @@ function resetForm() {
 
 onMounted(async () => {
   try {
-    const [categoriesRes, prioritiesRes] = await Promise.all([
+    const [categoriesRes, prioritiesRes, tagsRes] = await Promise.all([
       api.get('/categories'),
       api.get('/priorities'),
+      tagService.getAll() 
     ])
 
     categories.value = categoriesRes.data
     priorities.value = prioritiesRes.data
+    tags.value = tagsRes.data || []
 
-
+    // Autocompletar datos del usuario si está logueado
     if (moodleAuth.user) {
       form.value.contact_name = moodleAuth.user.name
       form.value.contact_email = moodleAuth.user.email
@@ -130,7 +154,12 @@ async function submitTicket() {
   error.value = null
 
   try {
-    await ticketService.create(form.value)
+    const ticketData = {
+      ...form.value,
+      tag_ids: Array.isArray(form.value.tag_ids) ? form.value.tag_ids : []
+    }
+
+    await ticketService.create(ticketData)
     alert('Ticket creado correctamente')
     resetForm()
   } catch (err) {
@@ -138,6 +167,15 @@ async function submitTicket() {
       err.response?.data?.message || 'Error al crear el ticket'
   } finally {
     loading.value = false
+  }
+}
+
+function toggleTag(tagId) {
+  const index = form.value.tag_ids.indexOf(tagId)
+  if (index === -1) {
+    form.value.tag_ids.push(tagId)
+  } else {
+    form.value.tag_ids.splice(index, 1)
   }
 }
 </script>
@@ -168,6 +206,40 @@ async function submitTicket() {
 .field textarea {
   width: 100%;
   padding: 8px;
+}
+
+/* Estilos para etiquetas */
+.chips-container {
+  margin-top: 5px;
+}
+
+.chips-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.chip {
+  padding: 6px 12px;
+  background: #f1f1f1;
+  border-radius: 20px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s;
+}
+
+.chip:hover {
+  background: #e0e0e0;
+}
+
+.chip-selected {
+  background: #2563eb;
+  color: white;
+}
+
+.chip-selected:hover {
+  background: #1d4ed8;
 }
 
 button {
