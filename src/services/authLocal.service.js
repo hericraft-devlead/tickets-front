@@ -26,11 +26,10 @@ class AuthLocalService {
   async logout() {
     try {
       await api.post('/logout');
+    } catch (error) {
+      console.warn('Error en logout backend, limpiando frontend:', error);
     } finally {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      sessionStorage.removeItem('token');
-      sessionStorage.removeItem('user');
+      this.clearAuthData();
     }
   }
 
