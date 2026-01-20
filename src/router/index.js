@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useMoodleAuthStore } from '@/stores/moodleAuth'
+import { useAdminAuthStore } from '@/stores/adminAuth'
 
 // Layouts
 import AuthLayout from '@/layouts/AuthLayout.vue'
@@ -12,7 +13,11 @@ import Login from '@/views/auth/Login.vue'
 import LoginLocal from '@/views/auth/LoginLocal.vue'
 import TicketCreate from '@/views/moodle/TicketCreate.vue'
 import TicketList from '@/views/moodle/TicketList.vue'
-import AdminDashboard from '@/views/admin/Dashboard.vue'
+
+// Nuevas vistas de tickets para admin
+import AdminTickets from '@/views/admin/AdminTickets.vue'
+import DepartmentTickets from '@/views/admin/DepartmenTickets.vue'  // Asegúrate que el nombre es correcto
+import MyTickets from '@/views/admin/MyTickets.vue'
 
 const routes = [
   /* ================== PUBLIC / GUEST ================== */
@@ -85,13 +90,30 @@ const routes = [
     meta: { requiresAdmin: true },
     children: [
       {
-        path: 'dashboard',
-        name: 'admin-dashboard',
-        component: AdminDashboard
+        path: 'tickets/all',
+        name: 'admin-tickets-all',
+        component: AdminTickets,
+        meta: { requiresAdmin: true, userType: 'super_admin' }
+      },
+      {
+        path: 'tickets/department',
+        name: 'admin-tickets-department',
+        component: DepartmentTickets,
+        meta: { requiresAdmin: true, userType: ['super_admin', 'department_head'] }
+      },
+      {
+        path: 'tickets/my-tickets',
+        name: 'admin-tickets-my',
+        component: MyTickets,
+        meta: { requiresAdmin: true, userType: ['super_admin', 'department_head', 'support'] }
       },
       {
         path: '',
-        redirect: 'dashboard'
+        redirect: (to) => {
+          // Redirigir según el tipo de usuario
+          const adminAuth = useAdminAuthStore()
+          return adminAuth.getDefaultRoute()
+        }
       }
     ]
   },
@@ -108,11 +130,14 @@ const router = createRouter({
   routes
 })
 
-
 router.beforeEach(async (to, from, next) => {
   const moodleAuth = useMoodleAuthStore()
+  const adminAuth = useAdminAuthStore()
 
-  const adminSession = JSON.parse(localStorage.getItem('admin_session'))
+  // Restaurar sesión admin si existe
+  if (!adminAuth.user && localStorage.getItem('admin_session')) {
+    adminAuth.restoreSession()
+  }
 
   /* ================== MOODLE RESTORE ================== */
   if (
@@ -130,8 +155,9 @@ router.beforeEach(async (to, from, next) => {
 
   /* ================== GUEST ================== */
   if (to.meta.guestOnly) {
-    if (adminSession?.token) {
-      return next('/admin/dashboard')
+    if (adminAuth.isAuthenticated()) {
+      // Redirigir según tipo de usuario
+      return next(adminAuth.getDefaultRoute())
     }
     if (moodleAuth.user) {
       return next('/moodle/tickets')
@@ -149,14 +175,35 @@ router.beforeEach(async (to, from, next) => {
 
   /* ================== ADMIN ================== */
   if (to.meta.requiresAdmin) {
-    if (!adminSession?.token) {
+    if (!adminAuth.isAuthenticated()) {
       return next('/login/local')
     }
+
+    // Verificar tipo de usuario si la ruta lo requiere
+    if (to.meta.userType) {
+      const userType = adminAuth.getUserType();
+      
+      if (!userType) {
+        // Si no tiene tipo, redirigir a la vista por defecto
+        return next(adminAuth.getDefaultRoute());
+      }
+
+      // Si userType es un array, verificar si el usuario está incluido
+      if (Array.isArray(to.meta.userType)) {
+        if (!to.meta.userType.includes(userType)) {
+          return next(adminAuth.getDefaultRoute());
+        }
+      } 
+      // Si userType es un string, verificar coincidencia exacta
+      else if (to.meta.userType !== userType) {
+        return next(adminAuth.getDefaultRoute());
+      }
+    }
+
     return next()
   }
 
   next()
 })
-
 
 export default router

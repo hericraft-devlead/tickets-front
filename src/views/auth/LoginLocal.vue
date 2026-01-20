@@ -92,7 +92,8 @@ export default {
         this.success = `Bienvenido ${response.user.name}`
 
         setTimeout(() => {
-          this.$router.push('/admin/dashboard')
+          // Usar la función del store para redirigir
+          this.$router.push(authStore.getDefaultRoute());
         }, 800)
 
       } catch (err) {

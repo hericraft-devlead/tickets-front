@@ -20,4 +20,8 @@ export default {
   delete(id) {
     return api.delete(`/users/${id}`)
   },
+
+  getByDepartment(departmentId) {
+    return api.get(`/departments/${departmentId}/users`)
+  }
 }
