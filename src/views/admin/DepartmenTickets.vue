@@ -59,6 +59,188 @@
       </div>
     </div>
 
+    <!-- Filtros avanzados -->
+    <div class="filters-card">
+      <div class="filters-header">
+        <h3><span class="filter-icon">🔍</span> Filtros Avanzados</h3>
+        <button 
+          v-if="hasActiveFilters" 
+          @click="clearFilters" 
+          class="reset-filters-btn"
+        >
+          <span class="btn-icon">🗑️</span> Limpiar filtros
+        </button>
+      </div>
+      
+      <div class="filters-body">
+        <!-- Primera fila de filtros -->
+        <div class="filters-grid">
+          <!-- Búsqueda -->
+          <div class="filter-group">
+            <label for="search">
+              <span class="label-icon">🔎</span> Buscar:
+            </label>
+            <input 
+              id="search"
+              type="text" 
+              v-model="search"
+              @input="handleSearchInput"
+              placeholder="Buscar en tickets..."
+              class="search-input"
+            />
+          </div>
+          
+          <!-- Estado -->
+          <div class="filter-group">
+            <label for="status">
+              <span class="label-icon">📊</span> Estado:
+            </label>
+            <select 
+              id="status" 
+              v-model="selectedStatus"
+              @change="applyFilters"
+              class="select-input"
+            >
+              <option value="">Todos los estados</option>
+              <option v-for="status in statuses" :key="status.id" :value="status.id">
+                {{ status.name }}
+              </option>
+            </select>
+          </div>
+          
+          <!-- Prioridad -->
+          <div class="filter-group">
+            <label for="priority">
+              <span class="label-icon">⚠️</span> Prioridad:
+            </label>
+            <select 
+              id="priority" 
+              v-model="selectedPriority"
+              @change="applyFilters"
+              class="select-input"
+            >
+              <option value="">Todas las prioridades</option>
+              <option v-for="priority in priorities" :key="priority.id" :value="priority.id">
+                {{ priority.name }}
+              </option>
+            </select>
+          </div>
+          
+          <!-- Categoría -->
+          <div class="filter-group">
+            <label for="category">
+              <span class="label-icon">🏷️</span> Categoría:
+            </label>
+            <select 
+              id="category" 
+              v-model="selectedCategory"
+              @change="applyFilters"
+              class="select-input"
+            >
+              <option value="">Todas las categorías</option>
+              <option v-for="category in categories" :key="category.id" :value="category.id">
+                {{ category.name }}
+              </option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- Segunda fila de filtros -->
+        <div class="filters-grid">
+          <!-- Rango de tiempo -->
+          <div class="filter-group">
+            <label for="timeRange">
+              <span class="label-icon">📅</span> Rango de tiempo:
+            </label>
+            <select 
+              id="timeRange" 
+              v-model="selectedTimeRange"
+              @change="onTimeRangeChange"
+              class="select-input"
+            >
+              <option value="">Todo el tiempo</option>
+              <option value="today">Hoy</option>
+              <option value="yesterday">Ayer</option>
+              <option value="week">Esta semana</option>
+              <option value="month">Este mes</option>
+              <option value="last_month">Mes anterior</option>
+              <option value="custom">Personalizado</option>
+            </select>
+          </div>
+          
+          <!-- Fechas personalizadas (solo visible cuando se selecciona "personalizado") -->
+          <template v-if="selectedTimeRange === 'custom'">
+            <div class="filter-group">
+              <label>
+                <span class="label-icon">📅</span> Desde:
+              </label>
+              <input 
+                type="date" 
+                v-model="customStartDate"
+                @change="applyFilters"
+                class="date-input"
+              />
+            </div>
+            
+            <div class="filter-group">
+              <label>
+                <span class="label-icon">📅</span> Hasta:
+              </label>
+              <input 
+                type="date" 
+                v-model="customEndDate"
+                @change="applyFilters"
+                class="date-input"
+              />
+            </div>
+          </template>
+          
+          <!-- Items por página -->
+          <div class="filter-group">
+            <label for="per_page">
+              <span class="label-icon">📄</span> Mostrar:
+            </label>
+            <select 
+              id="per_page" 
+              v-model="filters.per_page"
+              @change="changePerPage"
+              class="select-input"
+            >
+              <option value="10">10 tickets</option>
+              <option value="25">25 tickets</option>
+              <option value="50">50 tickets</option>
+              <option value="100">100 tickets</option>
+            </select>
+          </div>
+          
+          <!-- Ordenar por -->
+          <div class="filter-group">
+            <label for="sortBy">
+              <span class="label-icon">↕️</span> Ordenar por:
+            </label>
+            <select 
+              id="sortBy" 
+              v-model="sortBy"
+              @change="handleSortChange"
+              class="select-input"
+            >
+              <option value="created_at">Fecha creación</option>
+              <option value="updated_at">Última actualización</option>
+              <option value="title">Título</option>
+              <option value="priority">Prioridad</option>
+            </select>
+            <button 
+              @click="toggleSortOrder" 
+              class="sort-order-btn"
+              :title="sortOrder === 'asc' ? 'Orden ascendente' : 'Orden descendente'"
+            >
+              {{ sortOrder === 'asc' ? '↑' : '↓' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Contenido según vista -->
     <div class="view-content">
       <!-- Vista: Todos los tickets del departamento -->
@@ -68,61 +250,6 @@
           <p class="section-description">
             Tickets de {{ departmentName || 'tu departamento' }} - Puedes asignarlos a miembros del equipo
           </p>
-        </div>
-        
-        <!-- Filtros -->
-        <div class="filters-section">
-          <div class="filters-row">
-            <div class="filter-group">
-              <label for="status">Estado:</label>
-              <select 
-                id="status" 
-                v-model="filters.status"
-                @change="applyFilters"
-                class="filter-select"
-              >
-                <option value="">Todos los estados</option>
-                <option v-for="status in statuses" :key="status.id" :value="status.id">
-                  {{ status.name }}
-                </option>
-              </select>
-            </div>
-            
-            <div class="filter-group">
-              <label for="priority">Prioridad:</label>
-              <select 
-                id="priority" 
-                v-model="filters.priority"
-                @change="applyFilters"
-                class="filter-select"
-              >
-                <option value="">Todas las prioridades</option>
-                <option v-for="priority in priorities" :key="priority.id" :value="priority.id">
-                  {{ priority.name }}
-                </option>
-              </select>
-            </div>
-            
-            <div class="filter-group">
-              <label for="perPage">Mostrar:</label>
-              <select 
-                id="perPage" 
-                v-model="filters.per_page"
-                @change="applyFilters"
-                class="filter-select"
-              >
-                <option value="10">10 tickets</option>
-                <option value="25">25 tickets</option>
-                <option value="50">50 tickets</option>
-              </select>
-            </div>
-            
-            <div class="filter-actions">
-              <button @click="resetFilters" class="btn-secondary">
-                Limpiar filtros
-              </button>
-            </div>
-          </div>
         </div>
         
         <!-- Tabla de tickets -->
@@ -146,7 +273,7 @@
             <p v-else>No hay tickets asignados a este departamento</p>
             <button 
               v-if="hasActiveFilters" 
-              @click="resetFilters" 
+              @click="clearFilters" 
               class="btn-primary"
             >
               Ver todos
@@ -154,23 +281,50 @@
           </div>
           
           <div v-else>
+            <div class="table-info">
+              <span class="table-count">
+                Mostrando {{ departmentTickets.length }} de {{ pagination.total }} tickets
+                <span v-if="hasActiveFilters" class="filtered-badge">(Filtrados)</span>
+              </span>
+            </div>
+            
             <div class="table-responsive">
               <table class="tickets-table">
                 <thead>
                   <tr>
-                    <th>ID</th>
-                    <th>Título</th>
+                    <th @click="sortByColumn('id')" class="sortable">
+                      ID
+                      <span v-if="sortBy === 'id'" class="sort-indicator">
+                        {{ sortOrder === 'asc' ? '↑' : '↓' }}
+                      </span>
+                    </th>
+                    <th @click="sortByColumn('title')" class="sortable">
+                      Título
+                      <span v-if="sortBy === 'title'" class="sort-indicator">
+                        {{ sortOrder === 'asc' ? '↑' : '↓' }}
+                      </span>
+                    </th>
                     <th>Usuario</th>
-                    <th>Estado</th>
-                    <th>Prioridad</th>
                     <th>Categoría</th>
+                    <th @click="sortByColumn('status')" class="sortable">
+                      Estado
+                      <span v-if="sortBy === 'status'" class="sort-indicator">
+                        {{ sortOrder === 'asc' ? '↑' : '↓' }}
+                      </span>
+                    </th>
+                    <th @click="sortByColumn('priority')" class="sortable">
+                      Prioridad
+                      <span v-if="sortBy === 'priority'" class="sort-indicator">
+                        {{ sortOrder === 'asc' ? '↑' : '↓' }}
+                      </span>
+                    </th>
                     <th>Creado</th>
                     <th>Asignado a</th>
                     <th>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="ticket in departmentTickets" :key="ticket.id">
+                  <tr v-for="ticket in filteredTickets" :key="ticket.id">
                     <td class="ticket-id">#{{ ticket.id }}</td>
                     <td class="ticket-title">
                       <strong>{{ ticket.title }}</strong>
@@ -182,6 +336,7 @@
                       </span>
                       <span v-else class="no-user">N/A</span>
                     </td>
+                    <td>{{ ticket.category?.name || 'Sin categoría' }}</td>
                     <td>
                       <span class="status-badge" :class="getStatusClass(ticket.status)">
                         {{ ticket.status?.name || 'Sin estado' }}
@@ -192,12 +347,14 @@
                         {{ ticket.priority?.name || 'Sin prioridad' }}
                       </span>
                     </td>
-                    <td>{{ ticket.category?.name || 'Sin categoría' }}</td>
                     <td class="ticket-date">
-                      {{ formatDate(ticket.created_at) }}
+                      <div class="date-wrapper">
+                        <span class="date">{{ formatDate(ticket.created_at) }}</span>
+                        <span class="time">{{ formatTime(ticket.created_at) }}</span>
+                      </div>
                     </td>
                     <td class="ticket-assigned">
-                      <span v-if="ticket.assigned_user">
+                      <span v-if="ticket.assigned_user" class="assigned-user">
                         {{ ticket.assigned_user.name }}
                       </span>
                       <span v-else class="unassigned-badge">
@@ -205,44 +362,65 @@
                       </span>
                     </td>
                     <td class="ticket-actions">
-                      <button 
-                        v-if="canManageTicket(ticket)"
-                        @click="openAssignModal(ticket)"
-                        class="btn-action assign"
-                        :title="ticket.assigned_user ? 'Reasignar ticket' : 'Asignar ticket'"
-                      >
-                        {{ ticket.assigned_user ? '🔄' : '👤' }}
-                      </button>
+                      <div class="action-buttons">
+                        <button 
+                          v-if="canManageTicket(ticket)"
+                          @click="openAssignModal(ticket)"
+                          class="btn-action assign"
+                          :title="ticket.assigned_user ? 'Reasignar ticket' : 'Asignar ticket'"
+                        >
+                          {{ ticket.assigned_user ? '🔄' : '👤' }}
+                        </button>
+                        
+                        <!-- Botón para transferir -->
+                        <button 
+                          v-if="canManageTicket(ticket)"
+                          @click="openTransferModal(ticket)"
+                          class="btn-action transfer"
+                          title="Transferir a otro departamento"
+                        >
+                          📤
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 </tbody>
               </table>
             </div>
             
-            <!-- Paginación -->
+            <!-- Paginación mejorada -->
             <div v-if="pagination && pagination.last_page > 1" class="pagination">
               <div class="pagination-info">
-                Mostrando {{ departmentTickets.length }} de {{ pagination.total }} tickets
+                Página {{ filters.page }} de {{ pagination.last_page }}
               </div>
               <div class="pagination-controls">
                 <button 
                   @click="prevPage"
-                  :disabled="!pagination.prev_page_url || filters.page === 1"
-                  class="pagination-btn"
+                  :disabled="filters.page === 1"
+                  class="pagination-btn prev"
                 >
-                  ← Anterior
+                  ‹ Anterior
                 </button>
                 
-                <span class="page-info">
-                  Página {{ filters.page }} de {{ pagination.last_page }}
-                </span>
+                <div class="page-numbers">
+                  <button 
+                    v-for="page in visiblePages"
+                    :key="page"
+                    @click="goToPage(page)"
+                    class="page-number"
+                    :class="{ active: filters.page === page }"
+                    :disabled="page === '...'"
+                  >
+                    {{ page }}
+                  </button>
+                </div>
                 
                 <button 
                   @click="nextPage"
-                  :disabled="!pagination.next_page_url || filters.page === pagination.last_page"
-                  class="pagination-btn"
+                  :disabled="filters.page === pagination.last_page"
+                  class="pagination-btn next"
                 >
-                  Siguiente →
+                  Siguiente ›
                 </button>
               </div>
             </div>
@@ -276,7 +454,7 @@
           
           <div v-else class="tickets-grid">
             <div 
-              v-for="ticket in unassignedTickets" 
+              v-for="ticket in filteredUnassignedTickets" 
               :key="ticket.id"
               class="ticket-card unassigned"
             >
@@ -306,12 +484,23 @@
               </div>
               
               <div class="ticket-actions">
-                <button 
-                  @click="openAssignModal(ticket)"
-                  class="btn-action assign"
-                >
-                  👤 Asignar
-                </button>
+                <div class="action-buttons">
+                  <button 
+                    @click="openAssignModal(ticket)"
+                    class="btn-action assign"
+                  >
+                    👤 Asignar
+                  </button>
+                  
+                  <!-- Botón para transferir -->
+                  <button 
+                    @click="openTransferModal(ticket)"
+                    class="btn-action transfer"
+                    title="Transferir a otro departamento"
+                  >
+                    📤 Transferir
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -344,7 +533,7 @@
           
           <div v-else class="assigned-list">
             <div 
-              v-for="ticket in assignedTickets" 
+              v-for="ticket in filteredAssignedTickets" 
               :key="ticket.id"
               class="assigned-ticket-card"
             >
@@ -389,12 +578,23 @@
               </div>
               
               <div class="ticket-actions">
-                <button 
-                  @click="openAssignModal(ticket)"
-                  class="btn-secondary"
-                >
-                  🔄 Reasignar
-                </button>
+                <div class="action-buttons">
+                  <button 
+                    @click="openAssignModal(ticket)"
+                    class="btn-secondary"
+                  >
+                    🔄 Reasignar
+                  </button>
+                  
+                  <!-- Botón para transferir -->
+                  <button 
+                    @click="openTransferModal(ticket)"
+                    class="btn-action transfer"
+                    title="Transferir a otro departamento"
+                  >
+                    📤 Transferir
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -506,6 +706,143 @@
       </div>
     </div>
 
+    <!-- Modal de transferencia -->
+    <div v-if="showTransferModal" class="modal-overlay" @click.self="closeTransferModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>
+            <span class="modal-icon">📤</span>
+            Transferir Ticket #{{ selectedTicket?.id }}
+          </h3>
+          <button @click="closeTransferModal" class="modal-close">×</button>
+        </div>
+        
+        <div class="modal-body">
+          <!-- Previa del ticket -->
+          <div class="ticket-preview">
+            <h4>{{ selectedTicket?.title }}</h4>
+            <p class="ticket-description">{{ selectedTicket?.description }}</p>
+            <div class="ticket-info-row">
+              <span class="info-label">Departamento actual:</span>
+              <span class="current-department">{{ selectedTicket?.department?.name || 'Sin departamento' }}</span>
+            </div>
+            <div class="ticket-info-row">
+              <span class="info-label">Prioridad:</span>
+              <span class="priority-badge" :class="getPriorityClass(selectedTicket?.priority)">
+                {{ selectedTicket?.priority?.name || 'Sin prioridad' }}
+              </span>
+            </div>
+            <div class="ticket-info-row" v-if="selectedTicket?.assigned_user">
+              <span class="info-label">Actualmente asignado a:</span>
+              <span class="current-assigned">{{ selectedTicket.assigned_user.name }}</span>
+            </div>
+          </div>
+          
+          <!-- Formulario de transferencia -->
+          <div class="transfer-section">
+            <label for="transferDepartment">
+              <span class="label-icon">🏢</span>
+              Nuevo departamento:
+            </label>
+            
+            <select 
+              id="transferDepartment"
+              v-model="transferDepartmentId"
+              class="transfer-select"
+              @change="onTransferDepartmentChange"
+              :disabled="loadingDepartments || transferring"
+            >
+              <option value="">-- Seleccionar departamento --</option>
+              <option 
+                v-for="dept in departments" 
+                :key="dept.id" 
+                :value="dept.id"
+                :disabled="dept.id === departmentId"
+              >
+                {{ dept.name }}
+                {{ dept.id === departmentId ? '(Actual)' : '' }}
+              </option>
+            </select>
+            
+            <div v-if="loadingDepartments" class="loading-small">
+              Cargando departamentos...
+            </div>
+            
+            <div v-if="departments.length === 0" class="warning-message">
+              ⚠️ No hay otros departamentos disponibles
+            </div>
+            
+            <!-- Asignación opcional en el nuevo departamento -->
+            <div v-if="transferDepartmentId && transferDepartmentId !== departmentId" class="optional-assignment">
+              <label for="transferAssignTo">
+                <span class="label-icon">👥</span>
+                Asignar en nuevo departamento (opcional):
+              </label>
+              
+              <select 
+                id="transferAssignTo"
+                v-model="transferAssignToUserId"
+                class="transfer-select"
+                :disabled="loadingTransferUsers || transferring"
+              >
+                <option value="">-- No asignar ahora --</option>
+                <option 
+                  v-for="user in transferDepartmentUsers" 
+                  :key="user.id" 
+                  :value="user.id"
+                >
+                  {{ user.name }} 
+                  <span v-if="user.role_name">({{ user.role_name }})</span>
+                </option>
+              </select>
+              
+              <div v-if="loadingTransferUsers" class="loading-small">
+                Cargando usuarios del departamento...
+              </div>
+              
+              <div v-if="!loadingTransferUsers && transferDepartmentId && transferDepartmentUsers.length === 0" class="info-message">
+                ℹ️ No hay usuarios en este departamento para asignar
+              </div>
+            </div>
+            
+            <!-- Campo para razón -->
+            <div class="transfer-reason">
+              <label for="transferReason">
+                <span class="label-icon">📝</span>
+                Razón de la transferencia:
+              </label>
+              <textarea 
+                id="transferReason"
+                v-model="transferReason"
+                class="reason-textarea"
+                placeholder="Motivo de la transferencia..."
+                rows="3"
+                :disabled="transferring"
+              ></textarea>
+            </div>
+            
+            <div class="modal-actions">
+              <button 
+                @click="confirmTransfer"
+                :disabled="!transferDepartmentId || transferDepartmentId === departmentId || transferring"
+                class="btn-primary"
+              >
+                <span v-if="transferring">⌛ Procesando...</span>
+                <span v-else>📤 Transferir</span>
+              </button>
+              <button 
+                @click="closeTransferModal" 
+                class="btn-secondary"
+                :disabled="transferring"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Notificación -->
     <div v-if="notification.show" class="notification" :class="notification.type">
       <span class="notification-icon">{{ notification.icon }}</span>
@@ -520,6 +857,9 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useAdminAuthStore } from '@/stores/adminAuth'
 import TicketService from '@/services/ticket.service.js'
 import UserService from '@/services/user.service.js'
+import DepartmentService from '@/services/department.service.js'
+import useTicketFilters from '@/composables/useTicketFilters.js'
+import departmentService from '@/services/department.service.js'
 
 const authStore = useAdminAuthStore()
 
@@ -528,8 +868,14 @@ const loading = ref(false)
 const loadingUnassigned = ref(false)
 const loadingAssigned = ref(false)
 const loadingUsers = ref(false)
+const loadingDepartments = ref(false)
+const loadingTransferUsers = ref(false)
 const assigning = ref(false)
+const transferring = ref(false)
 const error = ref(null)
+
+// Variables para debounce
+let searchTimeout = null
 
 // Datos
 const departmentTickets = ref([])
@@ -537,16 +883,39 @@ const unassignedTickets = ref([])
 const assignedTickets = ref([])
 const statuses = ref([])
 const priorities = ref([])
+const categories = ref([])
 const availableUsers = ref([])
+const departments = ref([])
+const transferDepartmentUsers = ref([])
 
 // Paginación
 const pagination = ref(null)
 
-// Filtros
+// Usar el composable de filtros
+const filterComposable = useTicketFilters(departmentTickets.value)
+const {
+  search,
+  selectedStatus,
+  selectedPriority,
+  selectedCategory,
+  selectedTimeRange,
+  customStartDate,
+  customEndDate,
+  sortBy,
+  sortOrder,
+  hasActiveFilters,
+  applyFilters: applyLocalFilters,
+  clearFilters: clearLocalFilters,
+  toggleSortOrder,
+  sortByColumn
+} = filterComposable
+
+// Filtros para el backend
 const activeView = ref('all')
 const filters = ref({
   status: '',
   priority: '',
+  category: '',
   page: 1,
   per_page: 10
 })
@@ -556,6 +925,12 @@ const showAssignModal = ref(false)
 const selectedTicket = ref(null)
 const assignToUserId = ref('')
 const assignNotes = ref('')
+
+// Transferencia
+const showTransferModal = ref(false)
+const transferDepartmentId = ref('')
+const transferAssignToUserId = ref('')
+const transferReason = ref('')
 
 // Notificaciones
 const notification = ref({
@@ -599,12 +974,46 @@ const views = computed(() => [
   }
 ])
 
-const hasActiveFilters = computed(() => {
-  return filters.value.status || filters.value.priority
-})
-
 const isAnyLoading = computed(() => {
   return loading.value || loadingUnassigned.value || loadingAssigned.value
+})
+
+const filteredTickets = computed(() => {
+  return applyLocalFilters(departmentTickets.value)
+})
+
+const filteredUnassignedTickets = computed(() => {
+  return applyLocalFilters(unassignedTickets.value)
+})
+
+const filteredAssignedTickets = computed(() => {
+  return applyLocalFilters(assignedTickets.value)
+})
+
+const visiblePages = computed(() => {
+  if (!pagination.value) return []
+  const current = pagination.value.current_page
+  const last = pagination.value.last_page
+  const delta = 2
+  const range = []
+  
+  for (let i = Math.max(2, current - delta); i <= Math.min(last - 1, current + delta); i++) {
+    range.push(i)
+  }
+  
+  if (current - delta > 2) {
+    range.unshift('...')
+  }
+  if (current + delta < last - 1) {
+    range.push('...')
+  }
+  
+  range.unshift(1)
+  if (last > 1) {
+    range.push(last)
+  }
+  
+  return range
 })
 
 // Inicialización
@@ -628,7 +1037,9 @@ const loadInitialData = async () => {
     await Promise.all([
       loadStatuses(),
       loadPriorities(),
+      loadCategories(),
       loadAvailableUsers(),
+      loadDepartments(),
       refreshViewData()
     ])
   } catch (err) {
@@ -670,9 +1081,42 @@ const loadDepartmentTickets = async () => {
   const params = {
     page: filters.value.page,
     per_page: filters.value.per_page,
-    ...(filters.value.status && { status_id: filters.value.status }),
-    ...(filters.value.priority && { priority_id: filters.value.priority })
+    department_id: departmentId.value,
+    with: 'department,category,priority,status,moodle_user,assigned_user'
   }
+  
+  // Aplicar filtros del backend
+  if (selectedStatus.value) {
+    params.status_id = selectedStatus.value
+  }
+  
+  if (selectedPriority.value) {
+    params.priority_id = selectedPriority.value
+  }
+  
+  if (selectedCategory.value) {
+    params.category_id = selectedCategory.value
+  }
+  
+  // Filtro por fecha
+  if (selectedTimeRange.value) {
+    const { startDate, endDate } = filterComposable.getDateRange()
+    if (startDate) {
+      params.start_date = startDate.toISOString().split('T')[0]
+    }
+    if (endDate) {
+      params.end_date = endDate.toISOString().split('T')[0]
+    }
+  }
+  
+  // Filtro de búsqueda
+  if (search.value.trim()) {
+    params.search = search.value.trim()
+  }
+  
+  // Ordenación
+  params.sort_by = sortBy.value
+  params.sort_order = sortOrder.value
   
   const response = await loadData(
     () => TicketService.getByDepartment(params),
@@ -706,16 +1150,26 @@ const loadDepartmentTickets = async () => {
 }
 
 const loadUnassignedTickets = async () => {
+  const params = {
+    department_id: departmentId.value,
+    with: 'department,category,priority,status,moodle_user'
+  }
+  
   await loadData(
-    TicketService.getUnassignedByDepartment,
+    () => TicketService.getUnassignedByDepartment(params),
     loadingUnassigned,
     unassignedTickets
   )
 }
 
 const loadAssignedTickets = async () => {
+  const params = {
+    department_id: departmentId.value,
+    with: 'department,category,priority,status,moodle_user,assigned_user'
+  }
+  
   await loadData(
-    TicketService.getAssignedInDepartment,
+    () => TicketService.getAssignedInDepartment(params),
     loadingAssigned,
     assignedTickets
   )
@@ -743,6 +1197,22 @@ const loadPriorities = async () => {
   }
 }
 
+const loadCategories = async () => {
+  try {
+    const response = await departmentService.getAll()
+    if (response.data && Array.isArray(response.data)) {
+      categories.value = response.data
+    } else if (Array.isArray(response)) {
+      categories.value = response
+    } else {
+      categories.value = []
+    }
+  } catch (err) {
+    console.error('Error cargando categorías:', err)
+    categories.value = []
+  }
+}
+
 const loadAvailableUsers = async () => {
   if (!departmentId.value) {
     availableUsers.value = []
@@ -765,6 +1235,52 @@ const loadAvailableUsers = async () => {
     availableUsers.value = []
   } finally {
     loadingUsers.value = false
+  }
+}
+
+const loadDepartments = async () => {
+  loadingDepartments.value = true
+  try {
+    const response = await DepartmentService.getAll()
+    
+    if (response.data && Array.isArray(response.data)) {
+      // Filtrar el departamento actual
+      departments.value = response.data.filter(dept => dept.id !== departmentId.value)
+    } else if (Array.isArray(response)) {
+      departments.value = response.filter(dept => dept.id !== departmentId.value)
+    } else {
+      departments.value = []
+    }
+  } catch (err) {
+    console.error('Error cargando departamentos:', err)
+    departments.value = []
+  } finally {
+    loadingDepartments.value = false
+  }
+}
+
+const loadTransferDepartmentUsers = async (deptId) => {
+  if (!deptId) {
+    transferDepartmentUsers.value = []
+    return
+  }
+  
+  loadingTransferUsers.value = true
+  try {
+    const response = await UserService.getByDepartment(deptId)
+    
+    if (response.data && response.data.users && Array.isArray(response.data.users)) {
+      transferDepartmentUsers.value = response.data.users
+    } else if (Array.isArray(response.data)) {
+      transferDepartmentUsers.value = response.data
+    } else {
+      transferDepartmentUsers.value = []
+    }
+  } catch (err) {
+    console.error('Error cargando usuarios del departamento de transferencia:', err)
+    transferDepartmentUsers.value = []
+  } finally {
+    loadingTransferUsers.value = false
   }
 }
 
@@ -805,7 +1321,8 @@ const refreshAllData = async () => {
       loadDepartmentTickets(),
       loadUnassignedTickets(),
       loadAssignedTickets(),
-      loadAvailableUsers()
+      loadAvailableUsers(),
+      loadDepartments()
     ])
     showNotification('Datos actualizados correctamente', 'success', '✅')
   } catch (err) {
@@ -822,16 +1339,46 @@ const applyFilters = () => {
   loadDepartmentTickets()
 }
 
-const resetFilters = () => {
+const clearFilters = () => {
+  clearLocalFilters()
   filters.value = {
     status: '',
     priority: '',
+    category: '',
     page: 1,
     per_page: 10
   }
   loadDepartmentTickets()
 }
 
+// Debounce manual para búsqueda
+const handleSearchInput = () => {
+  clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    applyFilters()
+  }, 500)
+}
+
+// Cambiar rango de tiempo
+const onTimeRangeChange = () => {
+  if (selectedTimeRange.value !== 'custom') {
+    customStartDate.value = ''
+    customEndDate.value = ''
+  }
+  applyFilters()
+}
+
+// Ordenación
+const handleSortChange = () => {
+  applyFilters()
+}
+
+const changePerPage = () => {
+  filters.value.page = 1
+  loadDepartmentTickets()
+}
+
+// Paginación
 const nextPage = () => {
   if (pagination.value && filters.value.page < pagination.value.last_page) {
     filters.value.page++
@@ -848,11 +1395,20 @@ const prevPage = () => {
   }
 }
 
+const goToPage = (page) => {
+  if (page !== '...') {
+    filters.value.page = page
+    loadDepartmentTickets()
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+}
+
 // Métodos de tickets
 const canManageTicket = (ticket) => {
   return ticket.department_id === departmentId.value
 }
 
+// Modal de asignación
 const openAssignModal = async (ticket) => {
   if (!canManageTicket(ticket)) {
     showNotification('No puedes asignar tickets de otros departamentos', 'error', '❌')
@@ -907,6 +1463,88 @@ const confirmAssignment = async () => {
   }
 }
 
+// Modal de transferencia
+const openTransferModal = async (ticket) => {
+  if (!canManageTicket(ticket)) {
+    showNotification('No puedes transferir tickets de otros departamentos', 'error', '❌')
+    return
+  }
+  
+  selectedTicket.value = ticket
+  transferDepartmentId.value = ''
+  transferAssignToUserId.value = ''
+  transferReason.value = ''
+  transferDepartmentUsers.value = []
+  
+  // Cargar departamentos si no están cargados
+  if (departments.value.length === 0) {
+    await loadDepartments()
+  }
+  
+  if (departments.value.length === 0) {
+    showNotification('No hay otros departamentos disponibles para transferir', 'warning', '⚠️')
+    return
+  }
+  
+  showTransferModal.value = true
+}
+
+const onTransferDepartmentChange = async () => {
+  if (!transferDepartmentId.value || transferDepartmentId.value === departmentId.value) {
+    transferDepartmentUsers.value = []
+    transferAssignToUserId.value = ''
+    return
+  }
+  
+  // Cargar usuarios del nuevo departamento
+  await loadTransferDepartmentUsers(transferDepartmentId.value)
+}
+
+const confirmTransfer = async () => {
+  if (!selectedTicket.value || !transferDepartmentId.value || transferDepartmentId.value === departmentId.value) return
+  
+  transferring.value = true
+  
+  try {
+    // Mostrar confirmación
+    const deptName = departments.value.find(d => d.id === transferDepartmentId.value)?.name || 'el nuevo departamento'
+    if (!confirm(`¿Estás seguro de transferir el ticket a ${deptName}?`)) {
+      transferring.value = false
+      return
+    }
+    
+    // Transferir el ticket
+    const transferData = {
+      ticketId: selectedTicket.value.id,
+      departmentId: transferDepartmentId.value,
+      reason: transferReason.value || `Transferido por ${authStore.user?.name || 'Jefe de Departamento'}`
+    }
+    
+    await TicketService.transfer(transferData.ticketId, transferData.departmentId, transferData.reason)
+    
+    // Si se seleccionó un usuario, asignarlo también
+    if (transferAssignToUserId.value) {
+      const assignNotes = `Ticket transferido de ${selectedTicket.value.department?.name || 'departamento anterior'} y asignado`
+      await TicketService.assign(transferData.ticketId, transferAssignToUserId.value, assignNotes)
+    }
+    
+    showNotification(`Ticket #${selectedTicket.value.id} transferido correctamente`, 'success', '✅')
+    
+    // Cerrar modal y recargar datos
+    closeTransferModal()
+    await refreshViewData()
+    
+  } catch (err) {
+    console.error('Error transfiriendo ticket:', err)
+    
+    // Mostrar error solo si realmente falló
+    const message = err.response?.data?.message || 'Error al procesar la transferencia'
+    showNotification(message, 'error', '❌')
+  } finally {
+    transferring.value = false
+  }
+}
+
 const updateTicketAfterAssignment = (ticketId, newUserId) => {
   const assignedUser = availableUsers.value.find(user => user.id === newUserId)
   
@@ -949,6 +1587,15 @@ const closeAssignModal = () => {
   assignNotes.value = ''
 }
 
+const closeTransferModal = () => {
+  showTransferModal.value = false
+  selectedTicket.value = null
+  transferDepartmentId.value = ''
+  transferAssignToUserId.value = ''
+  transferReason.value = ''
+  transferDepartmentUsers.value = []
+}
+
 // Utilidades
 const truncateText = (text, length) => {
   if (!text) return ''
@@ -984,6 +1631,19 @@ const formatDate = (dateString) => {
     })
   } catch {
     return dateString
+  }
+}
+
+const formatTime = (dateString) => {
+  if (!dateString) return ''
+  try {
+    const date = new Date(dateString)
+    return date.toLocaleTimeString('es-ES', {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  } catch {
+    return ''
   }
 }
 
@@ -1176,6 +1836,112 @@ watch(() => filters.value.per_page, () => {
   color: white;
 }
 
+/* Filtros avanzados */
+.filters-card {
+  background: white;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.filters-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.filters-header h3 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #374151;
+}
+
+.reset-filters-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.reset-filters-btn:hover {
+  background: #e5e7eb;
+}
+
+.filters-body {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 1.5rem;
+}
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-group label {
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.select-input,
+.search-input,
+.date-input {
+  padding: 0.625rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  transition: border-color 0.2s;
+  background: white;
+  cursor: pointer;
+  width: 100%;
+}
+
+.select-input:focus,
+.search-input:focus,
+.date-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.sort-order-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  margin-left: 0.5rem;
+  transition: all 0.2s;
+}
+
+.sort-order-btn:hover {
+  background: #f3f4f6;
+}
+
 /* Contenido */
 .view-content {
   background: white;
@@ -1204,40 +1970,6 @@ watch(() => filters.value.per_page, () => {
   margin-top: 0.5rem;
 }
 
-/* Filtros */
-.filters-section {
-  background: #f9fafb;
-  border-radius: 0.5rem;
-  padding: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.filters-row {
-  display: flex;
-  gap: 1rem;
-  align-items: flex-end;
-  flex-wrap: wrap;
-}
-
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.filter-group label {
-  font-weight: 500;
-  color: #374151;
-  font-size: 0.875rem;
-}
-
-.filter-select {
-  padding: 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  min-width: 150px;
-}
-
 /* Tabla */
 .tickets-table-section {
   margin-top: 1.5rem;
@@ -1263,6 +1995,25 @@ watch(() => filters.value.per_page, () => {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+.table-info {
+  margin-bottom: 1rem;
+  padding: 0.5rem 0;
+}
+
+.table-count {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.filtered-badge {
+  background: #e0e7ff;
+  color: #3730a3;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  margin-left: 0.5rem;
 }
 
 .table-responsive {
@@ -1293,6 +2044,27 @@ watch(() => filters.value.per_page, () => {
   background: #f9fafb;
 }
 
+/* Encabezados ordenables */
+.sortable {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  padding-right: 1.5rem !important;
+}
+
+.sortable:hover {
+  background: #f0f9ff;
+}
+
+.sort-indicator {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.875rem;
+  color: #3b82f6;
+}
+
 .ticket-id {
   font-weight: bold;
   color: #374151;
@@ -1311,6 +2083,22 @@ watch(() => filters.value.per_page, () => {
 
 .ticket-date {
   white-space: nowrap;
+  color: #6b7280;
+}
+
+.date-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.date {
+  font-size: 0.875rem;
+  color: #111827;
+}
+
+.time {
+  font-size: 0.75rem;
   color: #6b7280;
 }
 
@@ -1368,6 +2156,89 @@ watch(() => filters.value.per_page, () => {
 .unassigned-badge {
   color: #f59e0b;
   font-weight: 500;
+}
+
+.assigned-user {
+  color: #10b981;
+  font-weight: 500;
+  background: #d1fae5;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+}
+
+/* Paginación mejorada */
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.pagination-info {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pagination-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  background: white;
+  color: #374151;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-numbers {
+  display: flex;
+  gap: 0.25rem;
+  margin: 0 0.5rem;
+}
+
+.page-number {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.25rem;
+  background: white;
+  cursor: pointer;
+  font-size: 0.875rem;
+  min-width: 2.5rem;
+}
+
+.page-number:hover:not(.active):not(:disabled) {
+  background: #f3f4f6;
+}
+
+.page-number.active {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.page-number:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Tickets sin asignar */
@@ -1649,14 +2520,6 @@ watch(() => filters.value.per_page, () => {
   font-weight: 600;
 }
 
-.assigned-user {
-  color: #10b981;
-  font-weight: 500;
-  background: #d1fae5;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
-}
-
 /* Responsive */
 @media (max-width: 768px) {
   .department-header {
@@ -1672,20 +2535,180 @@ watch(() => filters.value.per_page, () => {
     flex-direction: column;
   }
   
-  .filters-row {
-    flex-direction: column;
-  }
-  
-  .filter-group {
-    width: 100%;
-  }
-  
-  .filter-select {
-    width: 100%;
+  .filters-grid {
+    grid-template-columns: 1fr;
   }
   
   .tickets-grid {
     grid-template-columns: 1fr;
+  }
+  
+  .pagination {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  
+  .pagination-controls {
+    justify-content: center;
+  }
+}
+.ticket-actions .action-buttons {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: nowrap;
+}
+
+.btn-action {
+  padding: 0.375rem;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+}
+
+.btn-action.assign {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.btn-action.assign:hover {
+  background: #a7f3d0;
+}
+
+.btn-action.transfer {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.btn-action.transfer:hover {
+  background: #c7d2fe;
+}
+
+/* Modal de transferencia */
+.transfer-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.transfer-select {
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  width: 100%;
+}
+
+.optional-assignment {
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+}
+
+.info-message {
+  padding: 0.5rem;
+  color: #6b7280;
+  background: #f3f4f6;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.transfer-reason {
+  margin-top: 1rem;
+}
+
+.reason-textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.reason-textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Botones en tarjetas */
+.ticket-actions .action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.ticket-actions .btn-action {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  min-width: auto;
+  height: auto;
+}
+
+.ticket-actions .btn-action.transfer {
+  background: #e0e7ff;
+  color: #3730a3;
+  border: 1px solid #c7d2fe;
+}
+
+.ticket-actions .btn-action.transfer:hover {
+  background: #c7d2fe;
+}
+
+/* Estilos para la tabla */
+.tickets-table td.ticket-actions {
+  white-space: nowrap;
+}
+
+.tickets-table td.ticket-actions .action-buttons {
+  display: flex;
+  gap: 0.25rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .ticket-actions .action-buttons {
+    flex-direction: column;
+  }
+  
+  .tickets-table td.ticket-actions .action-buttons {
+    flex-direction: row;
+    justify-content: center;
+  }
+  
+  .ticket-actions .btn-action {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .tickets-table td.ticket-actions .action-buttons {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .btn-action {
+    width: 100%;
   }
 }
 </style>

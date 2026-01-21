@@ -14,10 +14,11 @@ import LoginLocal from '@/views/auth/LoginLocal.vue'
 import TicketCreate from '@/views/moodle/TicketCreate.vue'
 import TicketList from '@/views/moodle/TicketList.vue'
 
-// Nuevas vistas de tickets para admin
 import AdminTickets from '@/views/admin/AdminTickets.vue'
-import DepartmentTickets from '@/views/admin/DepartmenTickets.vue'  // Asegúrate que el nombre es correcto
+import DepartmentTickets from '@/views/admin/DepartmenTickets.vue'
 import MyTickets from '@/views/admin/MyTickets.vue'
+
+import AdminUsers from '@/views/admin/AdminUsers.vue'
 
 const routes = [
   /* ================== PUBLIC / GUEST ================== */
@@ -108,9 +109,17 @@ const routes = [
         meta: { requiresAdmin: true, userType: ['super_admin', 'department_head', 'support'] }
       },
       {
+        path: 'users',
+        name: 'admin-users',
+        component: AdminUsers,
+        meta: { 
+          requiresAdmin: true, 
+          userType: 'super_admin'
+        }
+      },
+      {
         path: '',
         redirect: (to) => {
-          // Redirigir según el tipo de usuario
           const adminAuth = useAdminAuthStore()
           return adminAuth.getDefaultRoute()
         }

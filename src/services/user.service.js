@@ -1,8 +1,8 @@
 import api from './api'
 
 export default {
-  getAll() {
-    return api.get('/users')
+  getAll(params = {}) {
+    return api.get('/users', { params })
   },
 
   getById(id) {
@@ -21,7 +21,7 @@ export default {
     return api.delete(`/users/${id}`)
   },
 
-  getByDepartment(departmentId) {
-    return api.get(`/departments/${departmentId}/users`)
+  getByDepartment(departmentId, params = {}) {
+    return api.get(`/departments/${departmentId}/users`, { params })
   }
 }

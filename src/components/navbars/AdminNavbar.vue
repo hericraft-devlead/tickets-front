@@ -33,6 +33,13 @@
       >
         Mis Tickets
       </RouterLink>
+
+      <RouterLink 
+        to="/admin/users"
+        :class="{ 'router-link-active': $route.path.includes('/users') }"
+      >
+        Ususarios
+      </RouterLink>
     </div>
 
     <div class="right">

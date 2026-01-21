@@ -32,14 +32,37 @@
       </div>
     </div>
 
-    <!-- Filtros básicos -->
+    <!-- Filtros avanzados -->
     <div class="filters-card">
       <div class="filters-header">
-        <h3><span class="filter-icon">🔍</span> Filtros</h3>
+        <h3><span class="filter-icon">🔍</span> Filtros Avanzados</h3>
+        <button 
+          v-if="hasActiveFilters" 
+          @click="clearFilters" 
+          class="reset-filters-btn"
+        >
+          <span class="btn-icon">🗑️</span> Limpiar filtros
+        </button>
       </div>
       
       <div class="filters-body">
+        <!-- Primera fila de filtros -->
         <div class="filters-grid">
+          <!-- Búsqueda -->
+          <div class="filter-group">
+            <label for="search">
+              <span class="label-icon">🔎</span> Buscar:
+            </label>
+            <input 
+              id="search"
+              type="text" 
+              v-model="search"
+              @input="handleSearchInput"
+              placeholder="Buscar en tickets..."
+              class="search-input"
+            />
+          </div>
+          
           <!-- Estado -->
           <div class="filter-group">
             <label for="status">
@@ -47,7 +70,7 @@
             </label>
             <select 
               id="status" 
-              v-model="filters.status"
+              v-model="selectedStatus"
               @change="applyFilters"
               class="select-input"
             >
@@ -65,7 +88,7 @@
             </label>
             <select 
               id="priority" 
-              v-model="filters.priority"
+              v-model="selectedPriority"
               @change="applyFilters"
               class="select-input"
             >
@@ -75,6 +98,75 @@
               </option>
             </select>
           </div>
+          
+          <!-- Categoría -->
+          <div class="filter-group">
+            <label for="category">
+              <span class="label-icon">🏷️</span> Categoría:
+            </label>
+            <select 
+              id="category" 
+              v-model="selectedCategory"
+              @change="applyFilters"
+              class="select-input"
+            >
+              <option value="">Todas las categorías</option>
+              <option v-for="category in categories" :key="category.id" :value="category.id">
+                {{ category.name }}
+              </option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- Segunda fila de filtros -->
+        <div class="filters-grid">
+          <!-- Rango de tiempo -->
+          <div class="filter-group">
+            <label for="timeRange">
+              <span class="label-icon">📅</span> Rango de tiempo:
+            </label>
+            <select 
+              id="timeRange" 
+              v-model="selectedTimeRange"
+              @change="onTimeRangeChange"
+              class="select-input"
+            >
+              <option value="">Todo el tiempo</option>
+              <option value="today">Hoy</option>
+              <option value="yesterday">Ayer</option>
+              <option value="week">Esta semana</option>
+              <option value="month">Este mes</option>
+              <option value="last_month">Mes anterior</option>
+              <option value="custom">Personalizado</option>
+            </select>
+          </div>
+          
+          <!-- Fechas personalizadas (solo visible cuando se selecciona "personalizado") -->
+          <template v-if="selectedTimeRange === 'custom'">
+            <div class="filter-group">
+              <label>
+                <span class="label-icon">📅</span> Desde:
+              </label>
+              <input 
+                type="date" 
+                v-model="customStartDate"
+                @change="applyFilters"
+                class="date-input"
+              />
+            </div>
+            
+            <div class="filter-group">
+              <label>
+                <span class="label-icon">📅</span> Hasta:
+              </label>
+              <input 
+                type="date" 
+                v-model="customEndDate"
+                @change="applyFilters"
+                class="date-input"
+              />
+            </div>
+          </template>
           
           <!-- Items por página -->
           <div class="filter-group">
@@ -90,13 +182,32 @@
               <option value="10">10 tickets</option>
               <option value="25">25 tickets</option>
               <option value="50">50 tickets</option>
+              <option value="100">100 tickets</option>
             </select>
           </div>
           
-          <!-- Botón para limpiar filtros -->
+          <!-- Ordenar por -->
           <div class="filter-group">
-            <button @click="resetFilters" class="reset-filters-btn">
-              <span class="btn-icon">🗑️</span> Limpiar filtros
+            <label for="sortBy">
+              <span class="label-icon">↕️</span> Ordenar por:
+            </label>
+            <select 
+              id="sortBy" 
+              v-model="sortBy"
+              @change="handleSortChange"
+              class="select-input"
+            >
+              <option value="created_at">Fecha creación</option>
+              <option value="updated_at">Última actualización</option>
+              <option value="title">Título</option>
+              <option value="priority">Prioridad</option>
+            </select>
+            <button 
+              @click="toggleSortOrder" 
+              class="sort-order-btn"
+              :title="sortOrder === 'asc' ? 'Orden ascendente' : 'Orden descendente'"
+            >
+              {{ sortOrder === 'asc' ? '↑' : '↓' }}
             </button>
           </div>
         </div>
@@ -127,7 +238,7 @@
         <p v-else>No hay tickets en el sistema</p>
         <button 
           v-if="hasActiveFilters" 
-          @click="resetFilters" 
+          @click="clearFilters" 
           class="reset-filters-btn"
         >
           <span class="btn-icon">🗑️</span> Limpiar filtros
@@ -136,24 +247,56 @@
       
       <!-- Tabla de tickets -->
       <div v-else class="tickets-container">
+        <div class="table-info">
+          <span class="table-count">
+            Mostrando {{ filteredTickets.length }} de {{ pagination.total }} tickets
+            <span v-if="hasActiveFilters" class="filtered-badge">(Filtrados)</span>
+          </span>
+        </div>
+        
         <div class="table-responsive">
           <table class="tickets-table">
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Título</th>
+                <th @click="sortByColumn('id')" class="sortable">
+                  ID
+                  <span v-if="sortBy === 'id'" class="sort-indicator">
+                    {{ sortOrder === 'asc' ? '↑' : '↓' }}
+                  </span>
+                </th>
+                <th @click="sortByColumn('title')" class="sortable">
+                  Título
+                  <span v-if="sortBy === 'title'" class="sort-indicator">
+                    {{ sortOrder === 'asc' ? '↑' : '↓' }}
+                  </span>
+                </th>
                 <th>Usuario</th>
                 <th>Departamento</th>
                 <th>Categoría</th>
-                <th>Estado</th>
-                <th>Prioridad</th>
+                <th @click="sortByColumn('status')" class="sortable">
+                  Estado
+                  <span v-if="sortBy === 'status'" class="sort-indicator">
+                    {{ sortOrder === 'asc' ? '↑' : '↓' }}
+                  </span>
+                </th>
+                <th @click="sortByColumn('priority')" class="sortable">
+                  Prioridad
+                  <span v-if="sortBy === 'priority'" class="sort-indicator">
+                    {{ sortOrder === 'asc' ? '↑' : '↓' }}
+                  </span>
+                </th>
                 <th>Asignado a</th>
-                <th>Fecha Creación</th>
+                <th @click="sortByColumn('created_at')" class="sortable">
+                  Fecha Creación
+                  <span v-if="sortBy === 'created_at'" class="sort-indicator">
+                    {{ sortOrder === 'asc' ? '↑' : '↓' }}
+                  </span>
+                </th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="ticket in tickets" :key="ticket.id">
+              <tr v-for="ticket in filteredTickets" :key="ticket.id">
                 <!-- ID -->
                 <td class="ticket-id-cell">
                   <span class="ticket-id">#{{ ticket.id }}</span>
@@ -281,10 +424,10 @@
           </table>
         </div>
         
-        <!-- Paginación simplificada -->
+        <!-- Paginación -->
         <div v-if="pagination && pagination.last_page > 1" class="pagination">
           <div class="pagination-info">
-            Mostrando {{ tickets.length }} de {{ pagination.total }} tickets
+            Página {{ filters.page }} de {{ pagination.last_page }}
           </div>
           <div class="pagination-controls">
             <button 
@@ -295,9 +438,18 @@
               ‹ Anterior
             </button>
             
-            <span class="page-info">
-              Página {{ filters.page }} de {{ pagination.last_page }}
-            </span>
+            <div class="page-numbers">
+              <button 
+                v-for="page in visiblePages"
+                :key="page"
+                @click="goToPage(page)"
+                class="page-number"
+                :class="{ active: filters.page === page }"
+                :disabled="page === '...'"
+              >
+                {{ page }}
+              </button>
+            </div>
             
             <button 
               @click="nextPage"
@@ -596,10 +748,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import TicketService from '@/services/ticket.service.js'
 import UserService from '@/services/user.service.js'
 import DepartmentService from '@/services/department.service.js'
+import useTicketFilters from '@/composables/useTicketFilters.js'
+import categoryService from '@/services/category.service'
 import { useAdminAuthStore } from '@/stores/adminAuth'
 
 const authStore = useAdminAuthStore()
@@ -609,6 +763,29 @@ const tickets = ref([])
 const pagination = ref(null)
 const statuses = ref([])
 const priorities = ref([])
+const categories = ref([])
+
+// Variables para debounce
+let searchTimeout = null
+
+// Usar el composable de filtros
+const filterComposable = useTicketFilters(tickets.value)
+const {
+  search,
+  selectedStatus,
+  selectedPriority,
+  selectedCategory,
+  selectedTimeRange,
+  customStartDate,
+  customEndDate,
+  sortBy,
+  sortOrder,
+  hasActiveFilters,
+  applyFilters: applyLocalFilters,
+  clearFilters: clearLocalFilters,
+  toggleSortOrder,
+  sortByColumn
+} = filterComposable
 
 // Modales
 const showViewModal = ref(false)
@@ -637,10 +814,11 @@ const transferData = ref({
   reason: ''
 })
 
-// Filtros
+// Filtros para el backend
 const filters = ref({
   status: '',
   priority: '',
+  category: '',
   page: 1,
   per_page: 10
 })
@@ -653,16 +831,43 @@ const notification = ref({
   icon: 'ℹ️'
 })
 
+// Computed
+const filteredTickets = computed(() => {
+  return applyLocalFilters(tickets.value)
+})
+
+const visiblePages = computed(() => {
+  if (!pagination.value) return []
+  const current = pagination.value.current_page
+  const last = pagination.value.last_page
+  const delta = 2
+  const range = []
+  
+  for (let i = Math.max(2, current - delta); i <= Math.min(last - 1, current + delta); i++) {
+    range.push(i)
+  }
+  
+  if (current - delta > 2) {
+    range.unshift('...')
+  }
+  if (current + delta < last - 1) {
+    range.push('...')
+  }
+  
+  range.unshift(1)
+  if (last > 1) {
+    range.push(last)
+  }
+  
+  return range
+})
+
 onMounted(() => {
   console.log('Admin Tickets view mounted')
   loadStatuses()
   loadPriorities()
+  loadCategories()
   loadTickets()
-})
-
-// Computed
-const hasActiveFilters = computed(() => {
-  return filters.value.status || filters.value.priority
 })
 
 // Métodos principales
@@ -674,16 +879,41 @@ const loadTickets = async () => {
     const params = {
       page: filters.value.page,
       per_page: filters.value.per_page,
-      with: 'department'
+      with: 'department,category,priority,status,moodle_user,assigned_user'
     }
     
-    if (filters.value.status) {
-      params.status_id = filters.value.status
+    // Aplicar filtros del backend
+    if (selectedStatus.value) {
+      params.status_id = selectedStatus.value
     }
     
-    if (filters.value.priority) {
-      params.priority_id = filters.value.priority
+    if (selectedPriority.value) {
+      params.priority_id = selectedPriority.value
     }
+    
+    if (selectedCategory.value) {
+      params.category_id = selectedCategory.value
+    }
+    
+    // Filtro por fecha
+    if (selectedTimeRange.value) {
+      const { startDate, endDate } = filterComposable.getDateRange()
+      if (startDate) {
+        params.start_date = startDate.toISOString().split('T')[0]
+      }
+      if (endDate) {
+        params.end_date = endDate.toISOString().split('T')[0]
+      }
+    }
+    
+    // Filtro de búsqueda
+    if (search.value.trim()) {
+      params.search = search.value.trim()
+    }
+    
+    // Ordenación
+    params.sort_by = sortBy.value
+    params.sort_order = sortOrder.value
     
     const response = await TicketService.getAll(params)
     
@@ -756,6 +986,22 @@ const loadPriorities = async () => {
   } catch (err) {
     console.error('Error cargando prioridades:', err)
     priorities.value = []
+  }
+}
+
+const loadCategories = async () => {
+  try {
+    const response = await categoryService.getAll()
+    if (response.data && Array.isArray(response.data)) {
+      categories.value = response.data
+    } else if (Array.isArray(response)) {
+      categories.value = response
+    } else {
+      categories.value = []
+    }
+  } catch (err) {
+    console.error('Error cargando categorías:', err)
+    categories.value = []
   }
 }
 
@@ -919,14 +1165,38 @@ const applyFilters = () => {
   loadTickets()
 }
 
-const resetFilters = () => {
+const clearFilters = () => {
+  clearLocalFilters()
   filters.value = {
     status: '',
     priority: '',
+    category: '',
     page: 1,
     per_page: 10
   }
   loadTickets()
+}
+
+// Debounce manual para búsqueda
+const handleSearchInput = () => {
+  clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    applyFilters()
+  }, 500)
+}
+
+// Cambiar rango de tiempo
+const onTimeRangeChange = () => {
+  if (selectedTimeRange.value !== 'custom') {
+    customStartDate.value = ''
+    customEndDate.value = ''
+  }
+  applyFilters()
+}
+
+// Ordenación
+const handleSortChange = () => {
+  applyFilters()
 }
 
 // Paginación
@@ -940,6 +1210,13 @@ const nextPage = () => {
 const prevPage = () => {
   if (pagination.value && filters.value.page > 1) {
     filters.value.page--
+    loadTickets()
+  }
+}
+
+const goToPage = (page) => {
+  if (page !== '...') {
+    filters.value.page = page
     loadTickets()
   }
 }
@@ -1911,5 +2188,124 @@ const hideNotification = () => {
     max-width: 100%;
     max-height: 80vh;
   }
+}
+.filters-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+/* Campos de entrada */
+.search-input {
+  padding: 0.625rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  transition: border-color 0.2s;
+  width: 100%;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.date-input {
+  padding: 0.625rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  transition: border-color 0.2s;
+  width: 100%;
+}
+
+.sort-order-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  margin-left: 0.5rem;
+  transition: all 0.2s;
+}
+
+.sort-order-btn:hover {
+  background: #f3f4f6;
+}
+
+/* Información de tabla */
+.table-info {
+  margin-bottom: 1rem;
+  padding: 0.5rem 0;
+}
+
+.table-count {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.filtered-badge {
+  background: #e0e7ff;
+  color: #3730a3;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  margin-left: 0.5rem;
+}
+
+/* Encabezados ordenables */
+.sortable {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  padding-right: 1.5rem !important;
+}
+
+.sortable:hover {
+  background: #f0f9ff;
+}
+
+.sort-indicator {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.875rem;
+  color: #3b82f6;
+}
+
+/* Números de página */
+.page-numbers {
+  display: flex;
+  gap: 0.25rem;
+  margin: 0 0.5rem;
+}
+
+.page-number {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.25rem;
+  background: white;
+  cursor: pointer;
+  font-size: 0.875rem;
+  min-width: 2.5rem;
+}
+
+.page-number:hover:not(.active):not(:disabled) {
+  background: #f3f4f6;
+}
+
+.page-number.active {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.page-number:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>

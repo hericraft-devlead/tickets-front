@@ -36,14 +36,37 @@
       </div>
     </div>
 
-    <!-- Filtros simples -->
+    <!-- Filtros avanzados -->
     <div class="filters-card">
       <div class="filters-header">
-        <h3><span class="filter-icon">🔍</span> Filtros</h3>
+        <h3><span class="filter-icon">🔍</span> Filtros Avanzados</h3>
+        <button 
+          v-if="hasActiveFilters" 
+          @click="clearFilters" 
+          class="reset-filters-btn"
+        >
+          <span class="btn-icon">🗑️</span> Limpiar filtros
+        </button>
       </div>
       
       <div class="filters-body">
+        <!-- Primera fila de filtros -->
         <div class="filters-grid">
+          <!-- Búsqueda -->
+          <div class="filter-group">
+            <label for="search">
+              <span class="label-icon">🔎</span> Buscar:
+            </label>
+            <input 
+              id="search"
+              type="text" 
+              v-model="search"
+              @input="handleSearchInput"
+              placeholder="Buscar en tickets..."
+              class="search-input"
+            />
+          </div>
+          
           <!-- Estado -->
           <div class="filter-group">
             <label for="status">
@@ -51,7 +74,7 @@
             </label>
             <select 
               id="status" 
-              v-model="filters.status"
+              v-model="selectedStatus"
               @change="applyFilters"
               class="select-input"
             >
@@ -69,7 +92,7 @@
             </label>
             <select 
               id="priority" 
-              v-model="filters.priority"
+              v-model="selectedPriority"
               @change="applyFilters"
               class="select-input"
             >
@@ -79,6 +102,75 @@
               </option>
             </select>
           </div>
+          
+          <!-- Categoría -->
+          <div class="filter-group">
+            <label for="category">
+              <span class="label-icon">🏷️</span> Categoría:
+            </label>
+            <select 
+              id="category" 
+              v-model="selectedCategory"
+              @change="applyFilters"
+              class="select-input"
+            >
+              <option value="">Todas las categorías</option>
+              <option v-for="category in categories" :key="category.id" :value="category.id">
+                {{ category.name }}
+              </option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- Segunda fila de filtros -->
+        <div class="filters-grid">
+          <!-- Rango de tiempo -->
+          <div class="filter-group">
+            <label for="timeRange">
+              <span class="label-icon">📅</span> Rango de tiempo:
+            </label>
+            <select 
+              id="timeRange" 
+              v-model="selectedTimeRange"
+              @change="onTimeRangeChange"
+              class="select-input"
+            >
+              <option value="">Todo el tiempo</option>
+              <option value="today">Hoy</option>
+              <option value="yesterday">Ayer</option>
+              <option value="week">Esta semana</option>
+              <option value="month">Este mes</option>
+              <option value="last_month">Mes anterior</option>
+              <option value="custom">Personalizado</option>
+            </select>
+          </div>
+          
+          <!-- Fechas personalizadas (solo visible cuando se selecciona "personalizado") -->
+          <template v-if="selectedTimeRange === 'custom'">
+            <div class="filter-group">
+              <label>
+                <span class="label-icon">📅</span> Desde:
+              </label>
+              <input 
+                type="date" 
+                v-model="customStartDate"
+                @change="applyFilters"
+                class="date-input"
+              />
+            </div>
+            
+            <div class="filter-group">
+              <label>
+                <span class="label-icon">📅</span> Hasta:
+              </label>
+              <input 
+                type="date" 
+                v-model="customEndDate"
+                @change="applyFilters"
+                class="date-input"
+              />
+            </div>
+          </template>
           
           <!-- Items por página -->
           <div class="filter-group">
@@ -94,13 +186,32 @@
               <option value="10">10 tickets</option>
               <option value="25">25 tickets</option>
               <option value="50">50 tickets</option>
+              <option value="100">100 tickets</option>
             </select>
           </div>
           
-          <!-- Botón para limpiar filtros -->
+          <!-- Ordenar por -->
           <div class="filter-group">
-            <button @click="resetFilters" class="reset-filters-btn">
-              <span class="btn-icon">🗑️</span> Limpiar filtros
+            <label for="sortBy">
+              <span class="label-icon">↕️</span> Ordenar por:
+            </label>
+            <select 
+              id="sortBy" 
+              v-model="sortBy"
+              @change="handleSortChange"
+              class="select-input"
+            >
+              <option value="created_at">Fecha creación</option>
+              <option value="updated_at">Última actualización</option>
+              <option value="title">Título</option>
+              <option value="priority">Prioridad</option>
+            </select>
+            <button 
+              @click="toggleSortOrder" 
+              class="sort-order-btn"
+              :title="sortOrder === 'asc' ? 'Orden ascendente' : 'Orden descendente'"
+            >
+              {{ sortOrder === 'asc' ? '↑' : '↓' }}
             </button>
           </div>
         </div>
@@ -131,7 +242,7 @@
         <p v-else>No tienes tickets asignados en este momento</p>
         <button 
           v-if="hasActiveFilters" 
-          @click="resetFilters" 
+          @click="clearFilters" 
           class="reset-filters-btn"
         >
           <span class="btn-icon">🗑️</span> Limpiar filtros
@@ -140,9 +251,16 @@
       
       <!-- Tarjetas de tickets -->
       <div v-else class="tickets-container">
+        <div class="table-info">
+          <span class="table-count">
+            Mostrando {{ filteredTickets.length }} de {{ pagination.total }} tickets
+            <span v-if="hasActiveFilters" class="filtered-badge">(Filtrados)</span>
+          </span>
+        </div>
+        
         <div class="tickets-grid">
           <div 
-            v-for="ticket in tickets" 
+            v-for="ticket in filteredTickets" 
             :key="ticket.id" 
             class="ticket-card"
             :class="getPriorityClass(ticket.priority)"
@@ -164,9 +282,10 @@
                 </span>
               </div>
               <div class="ticket-header-right">
-                <span class="ticket-date">
-                  {{ formatDate(ticket.created_at) }}
-                </span>
+                <div class="date-wrapper">
+                  <span class="date">{{ formatDate(ticket.created_at) }}</span>
+                  <span class="time">{{ formatTime(ticket.created_at) }}</span>
+                </div>
               </div>
             </div>
             
@@ -204,16 +323,42 @@
                   <span class="btn-icon">👁️</span> Ver
                 </button>
                 
+                <!-- Botones de acción según estado -->
+                <button 
+                  v-if="ticket?.status_id === 1"
+                  @click="changeTicketStatus(ticket, 2)"
+                  class="action-btn start-btn"
+                  title="Iniciar trabajo"
+                >
+                  <span class="btn-icon">▶️</span> Iniciar
+                </button>
                 
+                <button 
+                  v-if="ticket?.status_id === 2"
+                  @click="changeTicketStatus(ticket, 3)"
+                  class="action-btn resolve-btn"
+                  title="Marcar como resuelto"
+                >
+                  <span class="btn-icon">✅</span> Resolver
+                </button>
+                
+                <button 
+                  v-if="ticket?.status_id === 3 && !ticket?.status?.is_final"
+                  @click="changeTicketStatus(ticket, 4)"
+                  class="action-btn close-btn"
+                  title="Cerrar ticket"
+                >
+                  <span class="btn-icon">🔒</span> Cerrar
+                </button>
               </div>
             </div>
           </div>
         </div>
         
-        <!-- Paginación simplificada -->
+        <!-- Paginación mejorada -->
         <div v-if="pagination && pagination.last_page > 1" class="pagination">
           <div class="pagination-info">
-            Mostrando {{ tickets.length }} de {{ pagination.total }} tickets
+            Página {{ filters.page }} de {{ pagination.last_page }}
           </div>
           <div class="pagination-controls">
             <button 
@@ -224,9 +369,18 @@
               ‹ Anterior
             </button>
             
-            <span class="page-info">
-              Página {{ filters.page }} de {{ pagination.last_page }}
-            </span>
+            <div class="page-numbers">
+              <button 
+                v-for="page in visiblePages"
+                :key="page"
+                @click="goToPage(page)"
+                class="page-number"
+                :class="{ active: filters.page === page }"
+                :disabled="page === '...'"
+              >
+                {{ page }}
+              </button>
+            </div>
             
             <button 
               @click="nextPage"
@@ -240,7 +394,7 @@
       </div>
     </div>
 
-    <!-- Modal de Detalle del Ticket (Simplificado) -->
+    <!-- Modal de Detalle del Ticket -->
     <div v-if="showTicketDetail" class="modal-overlay" @click.self="closeTicketDetail">
       <div class="modal-container ticket-detail-modal">
         <div class="modal-header">
@@ -382,7 +536,9 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import TicketService from '@/services/ticket.service.js'
+import categoryService from '@/services/category.service'
 import { useAdminAuthStore } from '@/stores/adminAuth'
+import useTicketFilters from '@/composables/useTicketFilters.js'
 
 const authStore = useAdminAuthStore()
 const loading = ref(false)
@@ -391,19 +547,43 @@ const tickets = ref([])
 const pagination = ref(null)
 const statuses = ref([])
 const priorities = ref([])
+const categories = ref([])
+
+// Variables para debounce
+let searchTimeout = null
+
+// Usar el composable de filtros
+const filterComposable = useTicketFilters(tickets.value)
+const {
+  search,
+  selectedStatus,
+  selectedPriority,
+  selectedCategory,
+  selectedTimeRange,
+  customStartDate,
+  customEndDate,
+  sortBy,
+  sortOrder,
+  hasActiveFilters,
+  applyFilters: applyLocalFilters,
+  clearFilters: clearLocalFilters,
+  toggleSortOrder,
+  sortByColumn
+} = filterComposable
+
+// Filtros para el backend
+const filters = ref({
+  status: '',
+  priority: '',
+  category: '',
+  page: 1,
+  per_page: 10
+})
 
 // Ticket detalle
 const showTicketDetail = ref(false)
 const selectedTicket = ref(null)
 const updatingStatus = ref(false)
-
-// Filtros
-const filters = ref({
-  status: '',
-  priority: '',
-  page: 1,
-  per_page: 10
-})
 
 // Notificaciones
 const notification = ref({
@@ -419,12 +599,13 @@ onMounted(() => {
   
   loadStatuses()
   loadPriorities()
+  loadCategories()
   loadTickets()
 })
 
 // Computed
-const hasActiveFilters = computed(() => {
-  return filters.value.status || filters.value.priority
+const filteredTickets = computed(() => {
+  return applyLocalFilters(tickets.value)
 })
 
 const pendingCount = computed(() => {
@@ -433,6 +614,32 @@ const pendingCount = computed(() => {
 
 const inProgressCount = computed(() => {
   return tickets.value.filter(t => t.status_id === 2).length
+})
+
+const visiblePages = computed(() => {
+  if (!pagination.value) return []
+  const current = pagination.value.current_page
+  const last = pagination.value.last_page
+  const delta = 2
+  const range = []
+  
+  for (let i = Math.max(2, current - delta); i <= Math.min(last - 1, current + delta); i++) {
+    range.push(i)
+  }
+  
+  if (current - delta > 2) {
+    range.unshift('...')
+  }
+  if (current + delta < last - 1) {
+    range.push('...')
+  }
+  
+  range.unshift(1)
+  if (last > 1) {
+    range.push(last)
+  }
+  
+  return range
 })
 
 // Métodos principales
@@ -448,16 +655,42 @@ const loadTickets = async () => {
     
     const params = {
       page: filters.value.page,
-      per_page: filters.value.per_page
+      per_page: filters.value.per_page,
+      with: 'department,category,priority,status,moodle_user' // AÑADIR 'department' AQUÍ
     }
     
-    if (filters.value.status) {
-      params.status_id = filters.value.status
+    // Aplicar filtros del backend
+    if (selectedStatus.value) {
+      params.status_id = selectedStatus.value
     }
     
-    if (filters.value.priority) {
-      params.priority_id = filters.value.priority
+    if (selectedPriority.value) {
+      params.priority_id = selectedPriority.value
     }
+    
+    if (selectedCategory.value) {
+      params.category_id = selectedCategory.value
+    }
+    
+    // Filtro por fecha
+    if (selectedTimeRange.value) {
+      const { startDate, endDate } = filterComposable.getDateRange()
+      if (startDate) {
+        params.start_date = startDate.toISOString().split('T')[0]
+      }
+      if (endDate) {
+        params.end_date = endDate.toISOString().split('T')[0]
+      }
+    }
+    
+    // Filtro de búsqueda
+    if (search.value.trim()) {
+      params.search = search.value.trim()
+    }
+    
+    // Ordenación
+    params.sort_by = sortBy.value
+    params.sort_order = sortOrder.value
     
     console.log('Cargando tickets asignados...')
     console.log('Parámetros:', params)
@@ -473,6 +706,13 @@ const loadTickets = async () => {
     } else {
       tickets.value = []
       console.warn('Estructura de respuesta inesperada:', response)
+    }
+    
+    // Verificar si se está cargando el departamento
+    if (tickets.value.length > 0) {
+      console.log('Primer ticket:', tickets.value[0])
+      console.log('¿Tiene departamento?', tickets.value[0].department)
+      console.log('Relaciones cargadas:', tickets.value[0])
     }
     
     // Extraer paginación
@@ -550,6 +790,22 @@ const loadPriorities = async () => {
   }
 }
 
+const loadCategories = async () => {
+  try {
+    const response = await categoryService.getAll()
+    if (response.data && Array.isArray(response.data)) {
+      categories.value = response.data
+    } else if (Array.isArray(response)) {
+      categories.value = response
+    } else {
+      categories.value = []
+    }
+  } catch (err) {
+    console.error('Error cargando categorías:', err)
+    categories.value = []
+  }
+}
+
 // Métodos para estados
 const changeTicketStatus = async (ticket, newStatusId) => {
   if (!ticket || !newStatusId) return
@@ -608,17 +864,46 @@ const applyFilters = () => {
   loadTickets()
 }
 
-const resetFilters = () => {
+const clearFilters = () => {
+  clearLocalFilters()
   filters.value = {
     status: '',
     priority: '',
+    category: '',
     page: 1,
     per_page: 10
   }
   loadTickets()
 }
 
+// Debounce manual para búsqueda
+const handleSearchInput = () => {
+  clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    applyFilters()
+  }, 500)
+}
+
+// Cambiar rango de tiempo
+const onTimeRangeChange = () => {
+  if (selectedTimeRange.value !== 'custom') {
+    customStartDate.value = ''
+    customEndDate.value = ''
+  }
+  applyFilters()
+}
+
+// Ordenación
+const handleSortChange = () => {
+  applyFilters()
+}
+
 // Paginación
+const changePerPage = () => {
+  filters.value.page = 1
+  loadTickets()
+}
+
 const nextPage = () => {
   if (pagination.value && filters.value.page < pagination.value.last_page) {
     filters.value.page++
@@ -635,9 +920,12 @@ const prevPage = () => {
   }
 }
 
-const changePerPage = () => {
-  filters.value.page = 1
-  loadTickets()
+const goToPage = (page) => {
+  if (page !== '...') {
+    filters.value.page = page
+    loadTickets()
+    scrollToTop()
+  }
 }
 
 const scrollToTop = () => {
@@ -683,6 +971,19 @@ const formatDate = (dateString) => {
     })
   } catch {
     return dateString
+  }
+}
+
+const formatTime = (dateString) => {
+  if (!dateString) return ''
+  try {
+    const date = new Date(dateString)
+    return date.toLocaleTimeString('es-ES', {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  } catch {
+    return ''
   }
 }
 
@@ -1650,6 +1951,345 @@ watch(() => filters.value.per_page, () => {
   .detail-meta {
     flex-direction: column;
     gap: 0.5rem;
+  }
+}
+
+.filters-card {
+  background: white;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.filters-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.filters-header h3 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #374151;
+}
+
+.reset-filters-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.reset-filters-btn:hover {
+  background: #e5e7eb;
+}
+
+.filters-body {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 1.5rem;
+}
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-group label {
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.select-input,
+.search-input,
+.date-input {
+  padding: 0.625rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  transition: border-color 0.2s;
+  background: white;
+  cursor: pointer;
+  width: 100%;
+}
+
+.select-input:focus,
+.search-input:focus,
+.date-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.sort-order-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  margin-left: 0.5rem;
+  transition: all 0.2s;
+}
+
+.sort-order-btn:hover {
+  background: #f3f4f6;
+}
+
+/* Información de tabla */
+.table-info {
+  margin-bottom: 1rem;
+  padding: 0.5rem 0;
+}
+
+.table-count {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.filtered-badge {
+  background: #e0e7ff;
+  color: #3730a3;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  margin-left: 0.5rem;
+}
+
+/* Mejoras en las tarjetas de tickets */
+.ticket-header-right .date-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  text-align: right;
+}
+
+.ticket-header-right .date {
+  font-size: 0.875rem;
+  color: #111827;
+}
+
+.ticket-header-right .time {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+/* Paginación mejorada */
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.pagination-info {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pagination-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  background: white;
+  color: #374151;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-numbers {
+  display: flex;
+  gap: 0.25rem;
+  margin: 0 0.5rem;
+}
+
+.page-number {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.25rem;
+  background: white;
+  cursor: pointer;
+  font-size: 0.875rem;
+  min-width: 2.5rem;
+}
+
+.page-number:hover:not(.active):not(:disabled) {
+  background: #f3f4f6;
+}
+
+.page-number.active {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.page-number:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Botones de acción en tarjetas */
+.ticket-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  flex: 1;
+  justify-content: center;
+  min-width: 120px;
+}
+
+.action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.view-btn {
+  background: #3b82f6;
+  color: white;
+}
+
+.view-btn:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.start-btn {
+  background: #10b981;
+  color: white;
+}
+
+.start-btn:hover:not(:disabled) {
+  background: #059669;
+}
+
+.resolve-btn {
+  background: #10b981;
+  color: white;
+}
+
+.resolve-btn:hover:not(:disabled) {
+  background: #059669;
+}
+
+.close-btn {
+  background: #6b7280;
+  color: white;
+}
+
+.close-btn:hover:not(:disabled) {
+  background: #4b5563;
+}
+
+.reopen-btn {
+  background: #f59e0b;
+  color: white;
+}
+
+.reopen-btn:hover:not(:disabled) {
+  background: #d97706;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .filters-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .ticket-actions {
+    flex-direction: column;
+  }
+  
+  .action-btn {
+    width: 100%;
+    min-width: auto;
+  }
+  
+  .pagination {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  
+  .pagination-controls {
+    justify-content: center;
+  }
+  
+  .page-numbers {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .ticket-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .ticket-header-left {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .ticket-header-right {
+    width: 100%;
+    text-align: left;
   }
 }
 </style>
