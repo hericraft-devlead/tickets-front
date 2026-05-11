@@ -11,7 +11,6 @@
       
       <form @submit.prevent="handleSubmit">
         <div class="modal-body">
-          <!-- Contenedor con scroll para los campos del formulario -->
           <div class="modal-content">
             <div class="form-group">
               <label for="name" class="form-label">
@@ -71,7 +70,7 @@
 
             <div class="form-group">
               <label for="role" class="form-label">
-                <span class="label-icon">👑</span> Rol *
+                <span class="label-icon"></span> Rol *
               </label>
               <select
                 id="role"
@@ -112,7 +111,7 @@
                 {{ errors.department_id[0] }}
               </div>
               <div class="form-hint">
-                Nota: Los administradores sin departamento son Super Administradores
+                Nota: Los administradores sin departamento son Admins Principales 
               </div>
             </div>
           </div>

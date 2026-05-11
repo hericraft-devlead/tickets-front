@@ -34,7 +34,8 @@
         Mis Tickets
       </RouterLink>
 
-      <RouterLink 
+      <RouterLink
+        v-if="isSuperAdmin" 
         to="/admin/users"
         :class="{ 'router-link-active': $route.path.includes('/users') }"
       >

@@ -59,7 +59,7 @@
       </div>
     </div>
 
-    <!-- Filtros avanzados -->
+    <!-- Filtros -->
     <div class="filters-card">
       <div class="filters-header">
         <h3><span class="filter-icon">🔍</span> Filtros Avanzados</h3>
@@ -241,7 +241,6 @@
       </div>
     </div>
 
-    <!-- Contenido según vista -->
     <div class="view-content">
       <!-- Vista: Todos los tickets del departamento -->
       <div v-if="activeView === 'all'" class="view-section">
@@ -1687,7 +1686,6 @@ watch(() => filters.value.per_page, () => {
 </script>
 
 <style scoped>
-/* Estilos para la vista de departamento */
 .department-tickets {
   padding: 1.5rem;
 }

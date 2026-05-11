@@ -1,6 +1,5 @@
 <template>
   <div class="home-page">
-    <!-- Hero section -->
     <section class="hero">
       <h1>Sistema de Soporte Técnico</h1>
       <p>Crea tickets de soporte para reportar problemas o solicitar ayuda</p>
@@ -43,6 +42,8 @@ import TicketCreate from '@/views/moodle/TicketCreate.vue'
 .home-page {
   max-width: 1000px;
   margin: 0 auto;
+  padding-top: 3rem ;
+  padding-bottom: 3rem;
 }
 
 .hero {

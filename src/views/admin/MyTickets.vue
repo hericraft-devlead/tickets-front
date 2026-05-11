@@ -320,7 +320,7 @@
                   class="action-btn view-btn"
                   title="Ver detalles"
                 >
-                  <span class="btn-icon">👁️</span> Ver
+                  <span class="btn-icon"></span> Ver
                 </button>
                 
                 <!-- Botones de acción según estado -->
@@ -399,7 +399,7 @@
       <div class="modal-container ticket-detail-modal">
         <div class="modal-header">
           <h3>
-            <span class="modal-icon">👁️</span>
+            <span class="modal-icon"></span>
             Ticket #{{ selectedTicket?.id }}
             <span 
               class="status-badge modal-status"

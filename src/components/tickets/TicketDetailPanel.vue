@@ -96,26 +96,6 @@
       </div>
     </div>
 
-    <!-- Acciones -->
-    <div class="actions-section">
-      <button @click="viewFull" class="btn-view-full">
-        👁️ Ver completo
-      </button>
-      <button 
-        v-if="canEdit" 
-        @click="editTicket" 
-        class="btn-edit"
-      >
-        ✏️ Editar
-      </button>
-      <button 
-        @click="addComment" 
-        class="btn-comment"
-      >
-        💬 Comentar
-      </button>
-    </div>
-
     <!-- Comentarios recientes -->
     <div v-if="ticket.comments && ticket.comments.length > 0" class="recent-comments">
       <h4 class="section-title">Últimos comentarios</h4>
@@ -136,16 +116,6 @@
 
     <!-- Estadísticas -->
     <div class="stats-section">
-      <div class="stat-item">
-        <span class="stat-icon">💬</span>
-        <span class="stat-value">{{ ticket.comments_count || 0 }}</span>
-        <span class="stat-label">Comentarios</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-icon">📎</span>
-        <span class="stat-value">{{ ticket.attachments_count || 0 }}</span>
-        <span class="stat-label">Archivos</span>
-      </div>
       <div class="stat-item">
         <span class="stat-icon">⏱️</span>
         <span class="stat-value">{{ calculateAge(ticket.created_at) }}</span>

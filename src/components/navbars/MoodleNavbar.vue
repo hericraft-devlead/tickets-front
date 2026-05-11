@@ -6,7 +6,6 @@
     <div class="right">
       <span class="user">
         {{ auth.user?.name }}
-        <small>({{ auth.user?.tipoUsuario }})</small>
       </span>
 
       <button @click="logout">Salir</button>

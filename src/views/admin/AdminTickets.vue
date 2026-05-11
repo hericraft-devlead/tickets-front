@@ -6,7 +6,7 @@
         <h1><span class="header-icon">📋</span> Administración de Tickets</h1>
         <p class="subtitle">Todos los tickets del sistema - Solo vista, asignación y transferencia</p>
         <div class="user-badge admin-badge">
-          <span class="badge-icon">👑</span>
+          <span class="badge-icon"></span>
           Administrador
         </div>
       </div>
@@ -32,7 +32,6 @@
       </div>
     </div>
 
-    <!-- Filtros avanzados -->
     <div class="filters-card">
       <div class="filters-header">
         <h3><span class="filter-icon">🔍</span> Filtros Avanzados</h3>
@@ -397,7 +396,7 @@
                       class="action-btn view-btn"
                       title="Ver detalles"
                     >
-                      <span class="btn-icon">👁️</span>
+                      <span class="btn-icon"></span>
                     </button>
                     
                     <!-- Botón para asignar/reasignar -->
@@ -468,7 +467,7 @@
       <div class="modal-container">
         <div class="modal-header">
           <h3>
-            <span class="modal-icon">👁️</span>
+            <span class="modal-icon"></span>
             Ticket #{{ selectedTicket?.id }}
           </h3>
           <button @click="closeModals" class="modal-close">×</button>

@@ -27,34 +27,6 @@
       </div>
     </div>
 
-    <!-- Resumen rápido -->
-    <div class="quick-summary" v-if="allTickets.length > 0">
-      <div class="summary-card">
-        <div class="summary-icon">📊</div>
-        <div class="summary-content">
-          <h4>Resumen de Tickets</h4>
-          <div class="summary-stats">
-            <span class="stat">
-              <strong>{{ pendingTicketsCount }}</strong> Pendientes
-            </span>
-            <span class="stat">
-              <strong>{{ inProgressTicketsCount }}</strong> En progreso
-            </span>
-            <span class="stat">
-              <strong>{{ urgentTicketsCount }}</strong> Urgentes
-            </span>
-          </div>
-        </div>
-      </div>
-      <div class="summary-actions">
-        <button @click="exportTickets" class="btn-outline">
-          📤 Exportar
-        </button>
-        <button @click="printTickets" class="btn-outline">
-          🖨️ Imprimir
-        </button>
-      </div>
-    </div>
 
     <!-- Filtros -->
     <div class="filters" v-if="allTickets.length > 0 || hasActiveFilters">
@@ -220,15 +192,6 @@
         >
           🗂️
         </button>
-        <button 
-          v-if="selectedTicketId"
-          @click="switchViewMode('detail')" 
-          :class="{ 'active': viewMode === 'detail' }"
-          class="view-btn"
-          title="Vista de detalles"
-        >
-          👁️
-        </button>
       </div>
       
       <div class="items-per-page">
@@ -296,7 +259,6 @@
           <div class="table-cell" @click="sortByColumn('updated_at')">
             Actualizado {{ sortBy === 'updated_at' ? (sortOrder === 'asc' ? '↑' : '↓') : '' }}
           </div>
-          <div class="table-cell">Acciones</div>
         </div>
       </div>
       
@@ -349,33 +311,7 @@
               <small>{{ formatTime(ticket.updated_at) }}</small>
             </div>
           </div>
-          <div class="table-cell">
-            <div class="action-buttons">
-              <RouterLink 
-                :to="`/moodle/ticket/${ticket.id}`" 
-                class="btn-action view"
-                title="Ver detalles"
-                @click.stop
-              >
-                👁️
-              </RouterLink>
-              <button 
-                v-if="canEditTicket(ticket)"
-                @click.stop="editTicket(ticket.id)"
-                class="btn-action edit"
-                title="Editar ticket"
-              >
-                ✏️
-              </button>
-              <button 
-                @click.stop="cloneTicket(ticket)"
-                class="btn-action clone"
-                title="Clonar ticket"
-              >
-                📋
-              </button>
-            </div>
-          </div>
+
         </div>
       </div>
     </div>
@@ -451,22 +387,7 @@
             </span>
           </div>
           <div class="footer-actions">
-            <RouterLink 
-              :to="`/moodle/ticket/${ticket.id}`" 
-              class="btn-action view"
-              title="Ver detalles"
-              @click.stop
-            >
-              👁️ Ver
-            </RouterLink>
-            <button 
-              v-if="canEditTicket(ticket)"
-              @click.stop="editTicket(ticket.id)"
-              class="btn-action edit"
-              title="Editar ticket"
-            >
-              ✏️
-            </button>
+            
           </div>
         </div>
       </div>
@@ -981,23 +902,18 @@ const cloneTicket = (ticket) => {
   })
 }
 
-const exportTickets = () => {
-  // Lógica para exportar tickets
-  showNotification('Función de exportación en desarrollo', 'info', '📤')
-}
+
 
 const printTickets = () => {
   window.print()
 }
 
 const handleTicketUpdated = (updatedTicket) => {
-  // Actualizar el ticket en la lista
   const index = allTickets.value.findIndex(t => t.id === updatedTicket.id)
   if (index !== -1) {
     allTickets.value[index] = updatedTicket
     applyFilters()
     
-    // Si es el ticket seleccionado, actualizar también
     if (selectedTicketId.value === updatedTicket.id) {
       selectedTicketDetails.value = updatedTicket
     }

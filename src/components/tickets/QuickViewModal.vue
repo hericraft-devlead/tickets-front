@@ -143,7 +143,7 @@
         <h4 class="section-title">Acciones</h4>
         <div class="actions-grid">
           <button @click="viewFull" class="btn-action view">
-            👁️ Ver completo
+            Ver completo
           </button>
           <button 
             v-if="canEdit" 

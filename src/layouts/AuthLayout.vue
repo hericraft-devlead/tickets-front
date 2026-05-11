@@ -2,7 +2,7 @@
   <div class="auth-layout">
     <nav class="auth-navbar">
       <div class="logo">
-        <RouterLink to="/">Sistema de Tickets</RouterLink>
+        <RouterLink to="/">Sistema de Tickets Hericraft</RouterLink>
       </div>
       
       <div class="auth-options">
@@ -86,10 +86,6 @@
 }
 
 .auth-content {
-  flex: 1;
-  padding: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
   width: 100%;
 }
 </style>
